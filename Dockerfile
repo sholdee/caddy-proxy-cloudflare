@@ -16,7 +16,7 @@ RUN xcaddy build \
 
 WORKDIR /go/src/healthcheck
 COPY healthcheck.go .
-RUN go build -o /healthcheck healthcheck.go
+RUN go build -o /healthcheck -ldflags="-s -w" healthcheck.go
 
 FROM gcr.io/distroless/static-debian12:nonroot
 EXPOSE 80 443 2019
