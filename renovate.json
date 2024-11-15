@@ -7,15 +7,23 @@
     {
       "fileMatch": ["Dockerfile"],
       "matchStrings": [
-        "CADDY_VERSION=(?<currentValue>v[0-9\\.]+)",
+        "CADDY_VERSION=(?<currentValue>v[0-9\\.]+)"
+      ],
+      "datasource": "go",
+      "packageName": "github.com/caddyserver/caddy/v2",
+      "versioning": "semver"
+    },
+    {
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": [
         "github.com/caddyserver/xcaddy/cmd/xcaddy@(?<currentValue>v[0-9\\.]+)",
         "github.com/lucaslorentz/caddy-docker-proxy/v2@(?<currentValue>v[0-9\\.]+)",
         "github.com/caddy-dns/cloudflare@(?<currentValue>v[0-9\\.\\-]+)",
         "github.com/WeidiDeng/caddy-cloudflare-ip@(?<currentValue>v[0-9\\.\\-]+)"
       ],
-      "datasourceTemplate": "go",
-      "packageNameTemplate": "{{#if (eq matchString 'CADDY_VERSION')}}github.com/caddyserver/caddy/v2{{else}}{{packageName}}{{/if}}",
-      "versioningTemplate": "semver"
+      "datasource": "go",
+      "packageNameTemplate": "{{packageName}}",
+      "versioning": "semver"
     }
   ]
 }
