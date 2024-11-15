@@ -38,8 +38,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ${{ github.event_name == 'push' && 'sholdee/caddy-proxy-cloudflare:latest' || '' }}
-            ${{ github.event_name == 'push' && 'sholdee/caddy-proxy-cloudflare:${{ env.TAG }}' || '' }}
+            sholdee/caddy-proxy-cloudflare:latest
+            sholdee/caddy-proxy-cloudflare:${{ env.TAG }}
 
       - name: Create GitHub Release
         if: ${{ github.event_name == 'push' }}
