@@ -1,6 +1,5 @@
 ARG GOLANG_VERSION=1.23.3
 ARG ALPINE_VERSION=3.20
-ARG CADDY_VERSION=v2.8.4
 
 FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS gobuild
 
@@ -10,6 +9,8 @@ RUN apk add --no-cache git gcc build-base && \
     go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.4
 
 ENV CGO_ENABLED=0
+ENV CADDY_VERSION=v2.8.4
+
 RUN xcaddy build \
     --output /go/src/github.com/caddyserver/xcaddy/cmd/caddy \
     --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.9.1 \
