@@ -9,9 +9,9 @@
       "matchStrings": [
         "CADDY_VERSION=(?<currentValue>v[0-9\\.]+)"
       ],
-      "datasource": "go",
-      "packageName": "github.com/caddyserver/caddy/v2",
-      "versioning": "semver"
+      "datasourceTemplate": "go",
+      "packageNameTemplate": "github.com/caddyserver/caddy/v2",
+      "versioningTemplate": "semver"
     },
     {
       "fileMatch": ["Dockerfile"],
@@ -21,9 +21,9 @@
         "github.com/caddy-dns/cloudflare@(?<currentValue>v[0-9\\.\\-]+)",
         "github.com/WeidiDeng/caddy-cloudflare-ip@(?<currentValue>v[0-9\\.\\-]+)"
       ],
-      "datasource": "go",
+      "datasourceTemplate": "go",
       "packageNameTemplate": "{{packageName}}",
-      "versioning": "semver"
+      "versioningTemplate": "semver"
     }
   ]
 }
