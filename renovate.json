@@ -3,9 +3,12 @@
   "extends": [
     "config:recommended"
   ],
-  "regexManagers": [
+  "customManagers": [
     {
-      "fileMatch": ["Dockerfile"],
+      "customType": "regex",
+      "fileMatch": [
+        "Dockerfile"
+      ],
       "matchStrings": [
         "CADDY_VERSION=(?<currentValue>v[0-9\\.]+)"
       ],
@@ -14,7 +17,10 @@
       "versioningTemplate": "semver"
     },
     {
-      "fileMatch": ["Dockerfile"],
+      "customType": "regex",
+      "fileMatch": [
+        "Dockerfile"
+      ],
       "matchStrings": [
         "github.com/caddyserver/xcaddy/cmd/xcaddy@(?<currentValue>v[0-9\\.]+)",
         "github.com/lucaslorentz/caddy-docker-proxy/v2@(?<currentValue>v[0-9\\.]+)",
