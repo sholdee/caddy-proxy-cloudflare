@@ -22,7 +22,7 @@
         "Dockerfile"
       ],
       "matchStrings": [
-        "github\\.com/[a-zA-Z0-9._/-]+@(?<currentValue>v[0-9\\.\\-]+)"
+        "github\\.com\/[a-zA-Z0-9._\/-]+@(?<currentValue>v[0-9\\.\\-]+)"
       ],
       "datasourceTemplate": "go",
       "packageNameTemplate": "{{matchString}}",
