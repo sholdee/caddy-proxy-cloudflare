@@ -1,18 +1,20 @@
 ARG GOLANG_VERSION=1.23.3
 ARG ALPINE_VERSION=3.20
+ARG CADDY_VERSION=v2.8.4
 
 FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS gobuild
 
 WORKDIR /go/src/github.com/caddyserver/xcaddy/cmd/xcaddy
 
 RUN apk add --no-cache git gcc build-base && \
-    go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+    go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.4
 
 ENV CGO_ENABLED=0
 RUN xcaddy build \
     --output /go/src/github.com/caddyserver/xcaddy/cmd/caddy \
-    --with github.com/lucaslorentz/caddy-docker-proxy/v2 \
-    --with github.com/caddy-dns/cloudflare
+    --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.9.1 \
+    --with github.com/caddy-dns/cloudflare@v0.0.0-20240703190432-89f16b99c18e \
+    --with github.com/WeidiDeng/caddy-cloudflare-ip@v0.0.0-20231130002422-f53b62aa13cb
 
 WORKDIR /go/src/healthcheck
 COPY healthcheck.go .
