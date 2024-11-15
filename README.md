@@ -1,4 +1,4 @@
-[![cloudflared](https://github.com/homeall/caddy-reverse-proxy-cloudflare/workflows/CI/badge.svg)](https://github.com/homeall/caddy-reverse-proxy-cloudflare/actions) [![pull](https://img.shields.io/docker/pulls/homeall/caddy-reverse-proxy-cloudflare)](https://img.shields.io/docker/pulls/homeall/caddy-reverse-proxy-cloudflare) [![pull](https://img.shields.io/docker/image-size/homeall/caddy-reverse-proxy-cloudflare)](https://img.shields.io/docker/image-size/homeall/caddy-reverse-proxy-cloudflare)
+[![cloudflared](https://github.com/sholdee/caddy-proxy-cloudflare/workflows/CI/badge.svg)](https://github.com/sholdee/caddy-proxy-cloudflare/actions) [![pull](https://img.shields.io/docker/pulls/sholdee/caddy-proxy-cloudflare)](https://img.shields.io/docker/pulls/sholdee/caddy-proxy-cloudflare) [![pull](https://img.shields.io/docker/image-size/sholdee/caddy-proxy-cloudflare)](https://img.shields.io/docker/image-size/sholdee/caddy-proxy-cloudflare)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://ionut.vip)
 
 
@@ -35,9 +35,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This docker image is based on work from [@lucaslorentz](https://github.com/lucaslorentz/caddy-docker-proxy) which I included the [plugin Cloudflare](https://github.com/caddy-dns/cloudflare). 
-
-This is only difference between this one and his image. 
+This docker image is based on work from [@lucaslorentz](https://github.com/lucaslorentz/caddy-docker-proxy) which I included the [Cloudflare DNS-01 module](https://github.com/caddy-dns/cloudflare) and [Cloudflare IP module](https://github.com/WeidiDeng/caddy-cloudflare-ip). It is statically-linked and built with a non-root distroless base image that does not include a shell or other OS utilities.
 
 :notebook_with_decorative_cover: If you need more details about how to use this image I will advise you to go to his GitHub and review the [documentation](https://github.com/lucaslorentz/caddy-docker-proxy).
 
@@ -45,9 +43,7 @@ It is useful if you are planning to use the reverse proxy from :tm: [Caddy](http
 
 The main purpose of creating this image is to have DNS challenge for **wildcard domains**. 
 
-I am using GitHub Actions where it will update weekly docker image and both plugins.
-
-It also can keep the IP address up to date thanks to [Caddy DynamicDNS](https://github.com/mholt/caddy-dynamicdns).
+Renovate scans for and submits pull requests for dependency updates as they become avaialable. Whenever the repository is updated, a new image is built and pushed by Github Actions.
 
 :interrobang: Note: you will need **the scoped API token** for this setup. Please analyze this **[link](https://github.com/libdns/cloudflare#authenticating)**.
 
@@ -55,11 +51,11 @@ It also can keep the IP address up to date thanks to [Caddy DynamicDNS](https://
 <!-- GETTING STARTED -->
 ## Getting Started
 
-:beginner: It will work on any Linux box amd64 or [Raspberry Pi](https://www.raspberrypi.org) with arm64 or arm32. 
+:beginner: It will work on any Linux box amd64 or arm64. 
 
 ### Prerequisites
 
-[![Made with Docker !](https://img.shields.io/badge/Made%20with-Docker-blue)](https://github.com/homeall/caddy-reverse-proxy-cloudflare/blob/main/Dockerfile)
+[![Made with Docker !](https://img.shields.io/badge/Made%20with-Docker-blue)](https://github.com/sholdee/caddy-proxy-cloudflare/blob/main/Dockerfile)
 
 You will need to have:
 
@@ -77,41 +73,78 @@ You will need to have:
 
 You will tell :tm: [Caddy](https://caddyserver.com/) where it has to route traffic in docker network, as :tm: [Caddy](https://caddyserver.com/) is **ingress** on this case. 
 
-:arrow_down: A simple [docker-compose.yml](https://docs.docker.com/compose/):
+:arrow_down: A [docker-compose.yml](https://docs.docker.com/compose/) example with a wildcard domain, external services, trusted proxies, and least-privilege container:
 
 ```
-version: "3.3"
-
 services:
+
   caddy:
     container_name: caddy
-    image: homeall/caddy-reverse-proxy-cloudflare:latest
+    image: sholdee/caddy-proxy-cloudflare:latest
+    user: 65532:65532                                              # use non-root user
+    group_add:                                                     # add docker group ID from /etc/group for docker socket access
+      - 123
+    privileged: false
+    cap_drop:
+      - ALL                                                        # drop all capabilities
+    cap_add:
+      - NET_BIND_SERVICE                                           # add NET_BIND_SERVICE to bind ports <=1024
+    security_opt:
+      - no-new-privileges:true                                     # deny priviledge escalation
+    read_only: true                                                # set read-only root filesystem
+    networks:
+      - caddy
     restart: unless-stopped
-    environment:
-      TZ: 'Europe/London'
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"      # needs socket to read events
-      - "./caddy-data:/data"                             # needs volume to back up certificates
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"             # need socket to read labels and events
+      - "/opt/docker/caddy/data:/data:rw"                          # need for certiticate storage, make sure to chown -R 65532:65532
+      - "/opt/docker/caddy/config:/config:rw"                      # Caddyfile.autosave location, make sure to chown -R 65532:65532, can also use tmpfs instead
     ports:
-      - "80:80"
-      - "443:443"
-    labels:                                              # Global options
-      caddy.email: email@example.com                     # needs for acme CERT registration account
-      caddy.acme_dns: "cloudflare $API_TOKEN"            # When set here, you don't need to set it for each service individually
+      - "80:80/tcp"
+      - "443:443/tcp"
+    labels:                                                        # global options
+      caddy.email: "email@example.com"                             # need for ACME cert regsitration account
+      caddy.acme_dns: "cloudflare TOKEN"                           # replace TOKEN with your Cloudflare API token
+      caddy.servers.trusted_proxies: "cloudflare"                  # trust Cloudflare IP proxy headers via caddy-cloudflare-ip module
+      caddy.servers.trusted_proxies.interval: "1h"                 # optional Cloudflare IP refresh interval, default is 24h
+      caddy.servers.trusted_proxies.timeout: "15s"                 # time to wait for response from Cloudflare, default is no timeout
+      caddy.servers.client_ip_headers: "Cf-Connecting-Ip"          # use Cf-Connecting-Ip header as the client IP
+      caddy.servers.trusted_proxies_strict:                        # parse X-Forwarded-For right to left, use first valid value not in trusted proxy list
+      caddy.log.output: "stdout"                                   # set global option to log to stdout
+      caddy.log.format: "console"                                  # set global option to use console log format
+      caddy_0: "*.domain.com"                                      # example labels for proxying an external service by IP
+      caddy_0.log:                                                 # enable logging for *.domain.com block
+      caddy_0.1_@service: "host service.domain.com"
+      caddy_0.1_handle: "@service"
+      caddy_0.1_handle.reverse_proxy: http://10.1.1.10:8080
+      caddy_0.1_handle.reverse_proxy.header_up: "+X-Forwarded-For {http.request.header.CF-Connecting-IP}" # append Cf-Connecting-IP to X-Forwarded-For header
+      caddy_1: "*.domain.com"
+      caddy_1.1_@example: "host example.domain.com"
+      caddy_1.1_handle: "@example"
+      caddy_1.1_handle.reverse_proxy: http://10.1.1.20:8000
+      caddy_1.1_handle.reverse_proxy.header_up: "+X-Forwarded-For {http.request.header.CF-Connecting-IP}"
 
-  whoami0:
-    container_name: whoiam
+  whoami:
+    container_name: whoami                                         # hostname that will resolve within the Docker network
     image: jwilder/whoami:latest
-    hostname: TheDocker #----->>Expected result using curl
+    user: 65532:65532
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - caddy
     restart: unless-stopped
     labels:
-      caddy: your.example.com                            # needs for caddy to redirect traffic
-      # caddy.servers.protocols: "experimental_http3"    # For HTTP/3
-      # caddy.tls.ca: "https://acme.zerossl.com/v2/DV90" # Only if you will prefer ZeroSSL. Default it is Let's Encrypt.
-      caddy.reverse_proxy: "{{upstreams 8000}}"          # needs to tell caddy which port number should send traffic
-      caddy.tls.protocols: "tls1.3"                      # This is optional. Default it is tls1.2
-      caddy.tls.ca: "https://acme-staging-v02.api.letsencrypt.org/directory" # Needs only for testing purpose. Remove this line after you finished your tests.
-      caddy.tls.dns: "cloudflare $API-TOKEN"             # (Optional when using global setting) You will have to replace here $API-TOKEN with your real scoped API token from Cloudflare.
+      caddy: "*.domain.com"
+      caddy.1_@whoami: "host whoami.domain.com"
+      caddy.1_handle: "@whoami"
+      caddy.1_handle.reverse_proxy: "{{upstreams 8000}}"           # set http port that caddy will send traffic
+      caddy.1_handle.reverse_proxy.header_up: "+X-Forwarded-For {http.request.header.CF-Connecting-IP}"
 ```
 > Please get your scoped API-Token from  **[here](https://github.com/libdns/cloudflare#authenticating)**.
 
