@@ -22,13 +22,10 @@
         "Dockerfile"
       ],
       "matchStrings": [
-        "github.com/caddyserver/xcaddy/cmd/xcaddy@(?<currentValue>v[0-9\\.]+)",
-        "github.com/lucaslorentz/caddy-docker-proxy/v2@(?<currentValue>v[0-9\\.]+)",
-        "github.com/caddy-dns/cloudflare@(?<currentValue>v[0-9\\.\\-]+)",
-        "github.com/WeidiDeng/caddy-cloudflare-ip@(?<currentValue>v[0-9\\.\\-]+)"
+        "github\\.com/[a-zA-Z0-9._/-]+@(?<currentValue>v[0-9\\.\\-]+)"
       ],
       "datasourceTemplate": "go",
-      "packageNameTemplate": "{{packageName}}",
+      "packageNameTemplate": "{{matchString}}",
       "versioningTemplate": "semver"
     }
   ]
