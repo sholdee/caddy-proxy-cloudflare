@@ -22,10 +22,10 @@
         "Dockerfile"
       ],
       "matchStrings": [
-        "github\.com\/[a-zA-Z0-9._\/-]+@(?<currentValue>v?\d.\d.\d(-\d+-[a-z0-9]+)?)"
+        "(?<packageName>github\.com\/[a-zA-Z0-9._\/-]+)@(?<currentValue>v?\d.\d.\d(-\d+-[a-z0-9]+)?)"
       ],
       "datasourceTemplate": "go",
-      "packageNameTemplate": "{{matchString}}",
+      "packageNameTemplate": "{{packageName}}",
       "versioningTemplate": "semver"
     }
   ]
