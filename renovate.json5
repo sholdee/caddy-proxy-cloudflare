@@ -10,7 +10,7 @@
         "Dockerfile"
       ],
       "matchStrings": [
-        "CADDY_VERSION=(?<currentValue>v[0-9\\.]+)"
+        "CADDY_VERSION=(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
       ],
       "datasourceTemplate": "go",
       "packageNameTemplate": "github.com/caddyserver/caddy/v2",

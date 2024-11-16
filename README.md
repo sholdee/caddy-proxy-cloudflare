@@ -109,7 +109,7 @@ services:
       caddy.servers.trusted_proxies.interval: "1h"                 # optional Cloudflare IP refresh interval, default is 24h
       caddy.servers.trusted_proxies.timeout: "15s"                 # time to wait for response from Cloudflare, default is no timeout
       caddy.servers.client_ip_headers: "Cf-Connecting-Ip"          # use Cf-Connecting-Ip header as the client IP
-      caddy.servers.trusted_proxies_strict:                        # parse X-Forwarded-For right to left, use first valid value not in trusted proxy list
+      caddy.servers.trusted_proxies_strict:                        # use strict processing of client_ip_headers
       caddy.log.output: "stdout"                                   # set global option to log to stdout
       caddy.log.format: "console"                                  # set global option to use console log format
       caddy_0: "*.domain.com"                                      # example labels for proxying an external service by IP
@@ -117,12 +117,12 @@ services:
       caddy_0.1_@service: "host service.domain.com"
       caddy_0.1_handle: "@service"
       caddy_0.1_handle.reverse_proxy: http://10.1.1.10:8080
-      caddy_0.1_handle.reverse_proxy.header_up: "+X-Forwarded-For {http.request.header.CF-Connecting-IP}" # append Cf-Connecting-IP to X-Forwarded-For header
+      caddy_0.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}" # set X-Forwarded-For header to client_ip
       caddy_1: "*.domain.com"
       caddy_1.1_@example: "host example.domain.com"
       caddy_1.1_handle: "@example"
       caddy_1.1_handle.reverse_proxy: http://10.1.1.20:8000
-      caddy_1.1_handle.reverse_proxy.header_up: "+X-Forwarded-For {http.request.header.CF-Connecting-IP}"
+      caddy_1.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 
   whoami:
     container_name: whoami                                         # hostname that will resolve within the Docker network
@@ -144,7 +144,7 @@ services:
       caddy.1_@whoami: "host whoami.domain.com"
       caddy.1_handle: "@whoami"
       caddy.1_handle.reverse_proxy: "{{upstreams 8000}}"           # set http port that caddy will send traffic
-      caddy.1_handle.reverse_proxy.header_up: "+X-Forwarded-For {http.request.header.CF-Connecting-IP}"
+      caddy.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 ```
 > Please get your scoped API-Token from  **[here](https://github.com/libdns/cloudflare#authenticating)**.
 
