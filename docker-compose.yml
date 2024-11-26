@@ -14,8 +14,15 @@ services:
     security_opt:
       - no-new-privileges:true                                     # deny priviledge escalation
     read_only: true                                                # set read-only root filesystem
+    tmpfs:
+      - /config
     networks:
       - caddy
+    dns:                                                           # set container DNS to Cloudflare
+      - 1.1.1.1
+      - 1.0.0.1
+    environment:
+      - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}                       # crowdsec api key that is set for caddy
     restart: unless-stopped
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"             # need socket to read labels and events
@@ -33,7 +40,10 @@ services:
       caddy.servers.client_ip_headers: "Cf-Connecting-Ip"          # use Cf-Connecting-Ip header as the client IP
       caddy.servers.trusted_proxies_strict:                        # use strict processing of client_ip_headers
       caddy.log.output: "stdout"                                   # set global option to log to stdout
-      caddy.log.format: "console"                                  # set global option to use console log format
+      caddy.persist_config: "off"                                  # not needed with docker proxy module configuration
+      caddy.crowdsec.api_url: "http://crowdsec:8080"               # api url for crowdsec container
+      caddy.crowdsec.api_key: "${CROWDSEC_API_KEY}"                # crowdsec api key that is set for caddy
+      caddy.crowdsec.ticker_interval: "3s"                         # crowdsec local api poll interval for stream bouncer
       caddy_0: "*.domain.com"                                      # example labels for proxying an external service by IP
       caddy_0.log:                                                 # enable logging for *.domain.com block
       caddy_0.1_@service: "host service.domain.com"
@@ -46,9 +56,38 @@ services:
       caddy_1.1_handle.reverse_proxy: http://10.1.1.20:8000
       caddy_1.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 
+  crowdsec:
+    container_name: crowdsec
+    image: crowdsecurity/crowdsec:latest
+    user: 65532:65532
+    group_add:
+      - 123
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - caddy
+    environment:
+      - TZ=America/Chicago
+      - GID=65532
+      - USE_WAL=true
+      - COLLECTIONS=crowdsecurity/linux crowdsecurity/caddy crowdsecurity/whitelist-good-actors # base collections for caddy
+      - PARSERS=crowdsecurity/whitelists                          # whitelist internal ip addresses
+      - BOUNCER_KEY_CADDY=${CROWDSEC_API_KEY}                     # the api key that will be set for caddy
+      - ENROLL_KEY=${ENROLL_KEY}                                  # optional enrollment key for crowdsec hub
+    volumes:
+      - /opt/docker/crowdsec/data:/var/lib/crowdsec/data:rw       # crowdsec data dir
+      - /opt/docker/crowdsec/config:/etc/crowdsec:rw              # crowdsec config dir
+      - /opt/docker/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro # our log sources config
+      - /var/run/docker.sock:/var/run/docker.sock:ro              # need to mount docker socket to read stdout logs
+    restart: unless-stopped
+
   whoami:
-    container_name: whoami                                         # hostname that will resolve within the Docker network
+    container_name: whoami
     image: jwilder/whoami:latest
+    hostname: TheDocker                                           # Expected result using curl
     user: 65532:65532
     privileged: false
     cap_drop:
@@ -56,8 +95,6 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
-    tmpfs:
-      - /tmp
     networks:
       - caddy
     restart: unless-stopped

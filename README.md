@@ -35,18 +35,22 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This docker image is based on work from [@lucaslorentz](https://github.com/lucaslorentz/caddy-docker-proxy) which I included the [Cloudflare DNS-01 module](https://github.com/caddy-dns/cloudflare) and [Cloudflare IP module](https://github.com/WeidiDeng/caddy-cloudflare-ip). It is statically-linked and built with a non-root distroless base image that does not include a shell or other OS utilities.
+This image is designed to be used with Docker Compose and includes the following modules:
 
-:notebook_with_decorative_cover: If you need more details about how to use this image I will advise you to go to his GitHub and review the [documentation](https://github.com/lucaslorentz/caddy-docker-proxy).
+* [Docker proxy module](https://github.com/lucaslorentz/caddy-docker-proxy) for Caddy configuration via Docker labels
+* [Cloudflare DNS-01 module](https://github.com/caddy-dns/cloudflare) for DNS-01 domain control validation and wildcard certs
+* [Cloudflare IP module](https://github.com/WeidiDeng/caddy-cloudflare-ip) for trusting proxy headers from Cloudflare CDN
+* [Crowdsec bouncer module](https://github.com/hslatman/caddy-crowdsec-bouncer) for layer 7 enforcement of Crowdsec decisions
 
-It is useful if you are planning to use the reverse proxy from :tm: [Caddy](https://caddyserver.com/) together with [Let's Encrypt](https://letsencrypt.org/) and [Cloudflare DNS](https://www.cloudflare.com/dns/) as a challenge. 
+It is statically-linked and built with a non-root distroless base image that does not include a shell or other OS utilities.
 
-The main purpose of creating this image is to have DNS challenge for **wildcard domains**. 
+:notebook_with_decorative_cover: If you need more details about how to configure Caddy via the Docker proxy module please refer to the [documentation](https://github.com/lucaslorentz/caddy-docker-proxy).
 
-Renovate scans for and submits pull requests for dependency updates as they become avaialable. Whenever the repository is updated, a new image is built and pushed by Github Actions.
+The main purpose of creating this image is to have DNS challenge for **wildcard domains** on Cloudflare and optional Crowdsec integration. With the Cloudflare IP module, we can dynamically trust their CDN IP addresses for Cloudflare-proxied domains, enabling Caddy to resolve the real client IP addresses for inbound connections. Crowdsec will then use this for layer 7 enforcement of decisions.
 
-:interrobang: Note: you will need **the scoped API token** for this setup. Please analyze this **[link](https://github.com/libdns/cloudflare#authenticating)**.
+Renovate scans for and submits pull requests for dependency updates as they become available. Whenever the repository is updated, a new image is built and pushed by Github Actions.
 
+:interrobang: Note: you will need a **scoped API token** for this setup. Please refer to this **[link](https://github.com/libdns/cloudflare#authenticating)**.
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -61,7 +65,7 @@ You will need to have:
 
 * :whale: [Docker](https://docs.docker.com/engine/install/)
 * :whale2: [docker-compose](https://docs.docker.com/compose/) 
-* Domain name -> you can get from [Name Cheap](https://www.namecheap.com)
+* [Domain name](https://www.cloudflare.com/products/registrar/)
 * [Cloudflare DNS Zone](https://www.cloudflare.com/en-gb/learning/dns/glossary/dns-zone/)
 
 <!-- USAGE -->
@@ -69,13 +73,11 @@ You will need to have:
 
 ### Docker Compose
 
-:warning: You will have to use **labels** in docker-compose deployment. Please review below what it means each [label](https://caddyserver.com/docs/caddyfile/directives/tls). :arrow_down:
+:warning: You will have to use **labels** in the docker-compose deployment. Please review the example below. :arrow_down:
 
-You will tell :tm: [Caddy](https://caddyserver.com/) where it has to route traffic in docker network, as :tm: [Caddy](https://caddyserver.com/) is **ingress** on this case. 
+:arrow_down: A [docker-compose.yml](https://docs.docker.com/compose/) example with a wildcard domain, external services, trusted proxies, Crowdsec integration, and least-privilege containers:
 
-:arrow_down: A [docker-compose.yml](https://docs.docker.com/compose/) example with a wildcard domain, external services, trusted proxies, and least-privilege container:
-
-```
+```yaml
 services:
 
   caddy:
@@ -90,43 +92,81 @@ services:
     cap_add:
       - NET_BIND_SERVICE                                           # add NET_BIND_SERVICE to bind ports <=1024
     security_opt:
-      - no-new-privileges:true                                     # deny priviledge escalation
+      - no-new-privileges:true                                     # deny privilege escalation
     read_only: true                                                # set read-only root filesystem
+    tmpfs:                                                         # autosaved config does not need to be persisted
+      - /config
     networks:
       - caddy
+    dns:                                                           # set container DNS to Cloudflare
+      - 1.1.1.1
+      - 1.0.0.1
+    environment:
+      - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}                       # crowdsec api key that is set for caddy
     restart: unless-stopped
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"             # need socket to read labels and events
       - "/opt/docker/caddy/data:/data:rw"                          # need for certiticate storage, make sure to chown -R 65532:65532
-      - "/opt/docker/caddy/config:/config:rw"                      # Caddyfile.autosave location, make sure to chown -R 65532:65532, can also use tmpfs instead
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
     labels:                                                        # global options
       caddy.email: "email@example.com"                             # need for ACME cert regsitration account
-      caddy.acme_dns: "cloudflare TOKEN"                           # replace TOKEN with your Cloudflare API token
+      caddy.acme_dns: "cloudflare ${CF_TOKEN}"                     # replace ${CF_TOKEN} with your Cloudflare API token
       caddy.servers.trusted_proxies: "cloudflare"                  # trust Cloudflare IP proxy headers via caddy-cloudflare-ip module
       caddy.servers.trusted_proxies.interval: "1h"                 # optional Cloudflare IP refresh interval, default is 24h
       caddy.servers.trusted_proxies.timeout: "15s"                 # time to wait for response from Cloudflare, default is no timeout
       caddy.servers.client_ip_headers: "Cf-Connecting-Ip"          # use Cf-Connecting-Ip header as the client IP
       caddy.servers.trusted_proxies_strict:                        # use strict processing of client_ip_headers
       caddy.log.output: "stdout"                                   # set global option to log to stdout
-      caddy.log.format: "console"                                  # set global option to use console log format
+      caddy.persist_config: "off"                                  # persist_config not needed with docker proxy module configuration
+      caddy.crowdsec.api_url: "http://crowdsec:8080"               # api url for crowdsec container
+      caddy.crowdsec.api_key: "${CROWDSEC_API_KEY}"                # crowdsec api key that is set for caddy
+      caddy.crowdsec.ticker_interval: "3s"                         # crowdsec local api poll interval for stream bouncer
       caddy_0: "*.domain.com"                                      # example labels for proxying an external service by IP
       caddy_0.log:                                                 # enable logging for *.domain.com block
       caddy_0.1_@service: "host service.domain.com"
       caddy_0.1_handle: "@service"
       caddy_0.1_handle.reverse_proxy: http://10.1.1.10:8080
-      caddy_0.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}" # set X-Forwarded-For header to client_ip
+      caddy_0.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}" # set X-Forwarded-For header to client_ip, enables upstream app to see real client ip for Cloudflare-proxied connections
       caddy_1: "*.domain.com"
       caddy_1.1_@example: "host example.domain.com"
       caddy_1.1_handle: "@example"
       caddy_1.1_handle.reverse_proxy: http://10.1.1.20:8000
       caddy_1.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 
+  crowdsec:
+    container_name: crowdsec
+    image: crowdsecurity/crowdsec:latest
+    user: 65532:65532
+    group_add:
+      - 123
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - caddy
+    environment:
+      - TZ=America/Chicago
+      - GID=65532
+      - USE_WAL=true
+      - COLLECTIONS=crowdsecurity/linux crowdsecurity/caddy crowdsecurity/whitelist-good-actors # base collections for caddy
+      - PARSERS=crowdsecurity/whitelists                          # whitelist internal ip addresses
+      - BOUNCER_KEY_CADDY=${CROWDSEC_API_KEY}                     # the api key that will be set for caddy
+      - ENROLL_KEY=${ENROLL_KEY}                                  # optional enrollment key for crowdsec hub
+    volumes:
+      - /opt/docker/crowdsec/data:/var/lib/crowdsec/data:rw       # crowdsec data dir
+      - /opt/docker/crowdsec/config:/etc/crowdsec:rw              # crowdsec config dir
+      - /opt/docker/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro # our log sources config
+      - /var/run/docker.sock:/var/run/docker.sock:ro              # need to mount docker socket to read stdout logs
+    restart: unless-stopped
+
   whoami:
-    container_name: whoami                                         # hostname that will resolve within the Docker network
+    container_name: whoami
     image: jwilder/whoami:latest
+    hostname: TheDocker                                           # Expected result using curl
     user: 65532:65532
     privileged: false
     cap_drop:
@@ -134,8 +174,6 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
-    tmpfs:
-      - /tmp
     networks:
       - caddy
     restart: unless-stopped
@@ -145,7 +183,20 @@ services:
       caddy.1_handle: "@whoami"
       caddy.1_handle.reverse_proxy: "{{upstreams 8000}}"           # set http port that caddy will send traffic
       caddy.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
+
 ```
+
+If using Crowdsec, you will also need to create and mount acquis.yaml to the container for your log source(s):
+
+```yaml
+source: docker
+container_name:
+ - caddy
+labels:
+  type: caddy
+
+```
+
 > Please get your scoped API-Token from  **[here](https://github.com/libdns/cloudflare#authenticating)**.
 
 :arrow_up: [Go on TOP](#about-the-project) :point_up:
@@ -154,7 +205,7 @@ services:
 
 :arrow_down: Your can run the following command to see that is working:
  
-```
+```bash
 $  curl --insecure -vvI https://test.ionut.vip 2>&1 | awk 'BEGIN { cert=0 } /^\* Server certificate:/ { cert=1 } /^\*/ { if (cert) print }'
 * Server certificate:
 *  subject: CN=test.ionut.vip ################################ CA from Let's Enctrypt Staging 
@@ -173,11 +224,11 @@ I'm TheDocker################################### Expected result from hostname a
 ```
 ![](./assets/caddy-reverse-proxy.gif)
 
-:hearts: On the status column of the docker, you will notice the `healthy` word. This is telling you that docker is running [healtcheck](https://scoutapm.com/blog/how-to-use-docker-healthcheck) itself in order to make sure it is working properly. 
+:hearts: On the status column of the docker, you will notice the `healthy` word. This is telling you that docker is running [healthcheck](https://scoutapm.com/blog/how-to-use-docker-healthcheck) itself in order to make sure it is working properly. 
 
 :arrow_down: Please test yourself using the following command:
 
-```
+```bash
 ❯ docker inspect --format "{{json .State.Health }}" caddy | jq
 {
   "Status": "healthy",
@@ -193,10 +244,22 @@ I'm TheDocker################################### Expected result from hostname a
 }
 ```
 
+To verify that Crowdsec is parsing logs, check the metrics:
+
+```bash
+❯ sudo docker exec crowdsec cscli metrics
+Acquisition Metrics:
++-----------------------------------------+------------+--------------+----------------+------------------------+-------------------+
+| Source                                  | Lines read | Lines parsed | Lines unparsed | Lines poured to bucket | Lines whitelisted |
++-----------------------------------------+------------+--------------+----------------+------------------------+-------------------+
+| docker:caddy                            | 14.90k     | 14.90k       | -              | 1.11k                  | 3.11k             |
++-----------------------------------------+------------+--------------+----------------+------------------------+-------------------+
+```
+
 <!-- LICENSE -->
 ## License
 
-:newspaper_roll: Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/homeall/caddy-reverse-proxy-cloudflare/main/LICENSE) for more information.
+:newspaper_roll: Distributed under the Eclipse Public License 2.0. See [LICENSE](https://raw.githubusercontent.com/homeall/caddy-reverse-proxy-cloudflare/main/LICENSE) for more information.
 
 <!-- CONTACT -->
 ## Contact
@@ -209,5 +272,7 @@ I'm TheDocker################################### Expected result from hostname a
  * :tada: [@lucaslorentz](https://github.com/lucaslorentz/caddy-docker-proxy) :trophy:
  * :tada: :tm: [@Caddy](https://github.com/caddyserver/caddy) :1st_place_medal: and its huge :medal_military: **community** :heavy_exclamation_mark:
  * :tada: [dns.providers.cloudflare](https://github.com/caddy-dns/cloudflare) :medal_sports:
+ * :tada: [http.ip_sources.cloudflare](https://github.com/WeidiDeng/caddy-cloudflare-ip) :boom:
+ * :tada: [crowdsec](https://github.com/hslatman/caddy-crowdsec-bouncer) :star2:
 
 :arrow_up: [Go on TOP](#about-the-project) :point_up:
