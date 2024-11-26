@@ -2,7 +2,7 @@
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://ionut.vip)
 
 
-# Caddy reverse proxy with cloudflare plugin
+# Caddy with Docker proxy, Cloudflare, and Crowdsec bouncer modules
 
 <!-- TABLE OF CONTENTS -->
 <details open="open">
@@ -101,8 +101,6 @@ services:
     dns:                                                           # set container DNS to Cloudflare
       - 1.1.1.1
       - 1.0.0.1
-    environment:
-      - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}                       # crowdsec api key that is set for caddy
     restart: unless-stopped
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"             # need socket to read labels and events
