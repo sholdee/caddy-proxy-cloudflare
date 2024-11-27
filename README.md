@@ -125,13 +125,15 @@ services:
       caddy_0.log:                                                 # enable logging for *.domain.com block
       caddy_0.1_@service: "host service.domain.com"
       caddy_0.1_handle: "@service"
-      caddy_0.1_handle.reverse_proxy: http://10.1.1.10:8080
-      caddy_0.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}" # set X-Forwarded-For header to client_ip, enables upstream app to see real client ip for Cloudflare-proxied connections
+      caddy_0.1_handle.route.crowdsec:                             # add crowdsec to this upstream via route block
+      caddy_0.1_handle.route.reverse_proxy: http://10.1.1.10:8080
+      caddy_0.1_handle.route.reverse_proxy.header_up: "X-Forwarded-For {client_ip}" # set X-Forwarded-For header to client_ip
       caddy_1: "*.domain.com"
       caddy_1.1_@example: "host example.domain.com"
       caddy_1.1_handle: "@example"
-      caddy_1.1_handle.reverse_proxy: http://10.1.1.20:8000
-      caddy_1.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
+      caddy_1.1_handle.route.crowdsec:
+      caddy_1.1_handle.route.reverse_proxy: http://10.1.1.20:8000
+      caddy_1.1_handle.route.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 
   crowdsec:
     container_name: crowdsec
@@ -179,8 +181,9 @@ services:
       caddy: "*.domain.com"
       caddy.1_@whoami: "host whoami.domain.com"
       caddy.1_handle: "@whoami"
-      caddy.1_handle.reverse_proxy: "{{upstreams 8000}}"           # set http port that caddy will send traffic
-      caddy.1_handle.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
+      caddy.1_handle.route.crowdsec:
+      caddy.1_handle.route.reverse_proxy: "{{upstreams 8000}}"    # set http port that caddy will send traffic
+      caddy.1_handle.route.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 
 ```
 
@@ -195,7 +198,7 @@ labels:
 
 ```
 
-> Please get your scoped API-Token from  **[here](https://github.com/libdns/cloudflare#authenticating)**.
+> Please get your scoped Cloudflare API token from  **[here](https://github.com/libdns/cloudflare#authenticating)**.
 
 :arrow_up: [Go on TOP](#about-the-project) :point_up:
 
