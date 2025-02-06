@@ -1,11 +1,10 @@
-ARG GOLANG_VERSION=1.23.3
-ARG ALPINE_VERSION=3.20
+ARG GOLANG_VERSION=1.23.6
 
-FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS gobuild
+FROM golang:${GOLANG_VERSION}-bookworm AS gobuild
 
 WORKDIR /go/src/github.com/caddyserver/xcaddy/cmd/xcaddy
 
-RUN apk add --no-cache git gcc build-base && \
+RUN apt update && apt install -y git gcc build-essential && \
     go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.4
 
 ENV CGO_ENABLED=0
