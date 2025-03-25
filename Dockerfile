@@ -17,7 +17,7 @@ RUN xcaddy build \
     --with github.com/WeidiDeng/caddy-cloudflare-ip@v0.0.0-20231130002422-f53b62aa13cb \
     --with github.com/hslatman/caddy-crowdsec-bouncer/http@v0.8.1 \
     --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.8.1 \
-    --with github.com/ggicci/caddy-jwt@v0.12.0
+    --with github.com/ggicci/caddy-jwt@v1.0.0
 
 WORKDIR /go/src/healthcheck
 COPY healthcheck.go .
