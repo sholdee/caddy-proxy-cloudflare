@@ -13,7 +13,7 @@ ENV CADDY_VERSION=v2.9.1
 RUN xcaddy build \
     --output /go/src/github.com/caddyserver/xcaddy/cmd/caddy \
     --with github.com/lucaslorentz/caddy-docker-proxy/v2@ef4d096786b432b1431a3597121fc7617eb20777 \
-    --with github.com/caddy-dns/cloudflare@v0.0.0-20250228175314-1fb64108d4de \
+    --with github.com/caddy-dns/cloudflare@v0.1.0 \
     --with github.com/WeidiDeng/caddy-cloudflare-ip@v0.0.0-20231130002422-f53b62aa13cb \
     --with github.com/hslatman/caddy-crowdsec-bouncer/http@v0.8.1 \
     --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.8.1 \
