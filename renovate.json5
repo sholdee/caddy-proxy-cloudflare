@@ -1,32 +1,32 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
   ],
-  "customManagers": [
+  customManagers: [
     {
-      "customType": "regex",
-      "fileMatch": [
-        "Dockerfile"
+      customType: 'regex',
+      managerFilePatterns: [
+        '/Dockerfile/',
       ],
-      "matchStrings": [
-        "CADDY_VERSION=(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      matchStrings: [
+        'CADDY_VERSION=(?<currentValue>v\\d+\\.\\d+\\.\\d+)',
       ],
-      "datasourceTemplate": "go",
-      "packageNameTemplate": "github.com/caddyserver/caddy/v2",
-      "versioningTemplate": "semver"
+      datasourceTemplate: 'go',
+      packageNameTemplate: 'github.com/caddyserver/caddy/v2',
+      versioningTemplate: 'semver',
     },
     {
-      "customType": "regex",
-      "fileMatch": [
-        "Dockerfile"
+      customType: 'regex',
+      managerFilePatterns: [
+        '/Dockerfile/',
       ],
-      "matchStrings": [
-        "(?<packageName>github\\.com/[^\\s@]+)@(?<currentValue>v?\\d+\\.\\d+\\.\\d+(\\-[0-9]+\\-[a-z0-9]+)?)"
+      matchStrings: [
+        '(?<packageName>github\\.com/[^\\s@]+)@(?<currentValue>v?\\d+\\.\\d+\\.\\d+(\\-[0-9]+\\-[a-z0-9]+)?)',
       ],
-      "datasourceTemplate": "go",
-      "packageNameTemplate": "{{packageName}}",
-      "versioningTemplate": "semver"
-    }
-  ]
+      datasourceTemplate: 'go',
+      packageNameTemplate: '{{packageName}}',
+      versioningTemplate: 'semver',
+    },
+  ],
 }
