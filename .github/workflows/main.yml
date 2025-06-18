@@ -37,7 +37,7 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3.11.0
+        uses: docker/setup-buildx-action@v3.11.1
 
       - name: Build and Push to Docker Hub and GHCR
         uses: docker/build-push-action@v6
