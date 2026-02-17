@@ -1,6 +1,6 @@
-ARG GOLANG_VERSION=1.25.3
+ARG GOLANG_VERSION=1.26.0
 
-FROM golang:${GOLANG_VERSION}-bookworm AS gobuild
+FROM golang:${GOLANG_VERSION}-trixie AS gobuild
 
 WORKDIR /go/src/github.com/caddyserver/xcaddy/cmd/xcaddy
 
@@ -15,15 +15,15 @@ RUN xcaddy build \
     --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.10.0 \
     --with github.com/caddy-dns/cloudflare@v0.2.3 \
     --with github.com/WeidiDeng/caddy-cloudflare-ip@v0.0.0-20231130002422-f53b62aa13cb \
-    --with github.com/hslatman/caddy-crowdsec-bouncer/http@v0.9.2 \
-    --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.9.2 \
+    --with github.com/hslatman/caddy-crowdsec-bouncer/http@v0.10.0 \
+    --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.10.0 \
     --with github.com/ggicci/caddy-jwt@v1.1.1
 
 WORKDIR /go/src/healthcheck
 COPY healthcheck.go .
 RUN go build -o /healthcheck -ldflags="-s -w" healthcheck.go
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 EXPOSE 80 443 2019
 
 ENV XDG_CONFIG_HOME=/config
