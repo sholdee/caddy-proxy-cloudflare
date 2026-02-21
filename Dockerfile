@@ -8,7 +8,7 @@ RUN apt update && apt install -y git gcc build-essential && \
     go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.5
 
 ENV CGO_ENABLED=0
-ENV CADDY_VERSION=v2.11.0
+ENV CADDY_VERSION=v2.11.1
 
 RUN xcaddy build \
     --output /go/src/github.com/caddyserver/xcaddy/cmd/caddy \
