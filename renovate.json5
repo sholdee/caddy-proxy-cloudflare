@@ -5,12 +5,18 @@
   ],
   packageRules: [
     {
-      matchPackagePatterns: ['github\\.com/hslatman/caddy-crowdsec-bouncer'],
       groupName: 'caddy-crowdsec-bouncer',
+      matchPackageNames: [
+        '/github\\.com/hslatman/caddy-crowdsec-bouncer/',
+      ],
     },
     {
-      matchDatasources: ['docker'],
-      matchPackageNames: ['golang'],
+      matchDatasources: [
+        'docker',
+      ],
+      matchPackageNames: [
+        'golang',
+      ],
       prCreation: 'immediate',
       minimumReleaseAge: null,
     },
