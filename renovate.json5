@@ -3,6 +3,12 @@
   extends: [
     'config:recommended',
   ],
+  packageRules: [
+    {
+      matchPackagePatterns: ['github\\.com/hslatman/caddy-crowdsec-bouncer'],
+      groupName: 'caddy-crowdsec-bouncer',
+    },
+  ],
   customManagers: [
     {
       customType: 'regex',

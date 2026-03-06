@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "healthcheck.go"
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   buildx:
