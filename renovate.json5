@@ -3,7 +3,16 @@
   extends: [
     'config:recommended',
   ],
+  platformAutomerge: true,
   packageRules: [
+    {
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+        'digest',
+      ],
+      automerge: true,
+    },
     {
       groupName: 'caddy-crowdsec-bouncer',
       matchPackageNames: [
