@@ -20,6 +20,25 @@
       ],
     },
     {
+      description: 'Rate-limit and automerge Renovate self-updates (multiple releases per day)',
+      matchPackageNames: [
+        'renovate',
+      ],
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+      ],
+      schedule: [
+        'before 2am on monday',
+      ],
+      minimumReleaseAge: '7 days',
+      automerge: true,
+    },
+    {
+      description: 'Update Go builder image promptly',
+      matchManagers: [
+        'dockerfile',
+      ],
       matchDatasources: [
         'docker',
       ],
@@ -54,6 +73,20 @@
       datasourceTemplate: 'go',
       packageNameTemplate: '{{packageName}}',
       versioningTemplate: 'semver',
+    },
+    {
+      customType: 'regex',
+      description: [
+        'Process npx tool versions in CI workflows',
+      ],
+      managerFilePatterns: [
+        '/\\.github/workflows/.*\\.ya?ml$/',
+      ],
+      matchStrings: [
+        'npx --yes (?:--package )?(?<depName>[\\w-]+)@(?<currentValue>[\\d.]+)',
+      ],
+      datasourceTemplate: 'npm',
+      versioningTemplate: 'npm',
     },
   ],
 }

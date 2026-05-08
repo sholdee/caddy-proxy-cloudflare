@@ -1,6 +1,4 @@
-ARG GOLANG_VERSION=1.26.1
-
-FROM golang:${GOLANG_VERSION}-trixie AS gobuild
+FROM golang:1.26.3-trixie@sha256:38a4ee13cf5097699c2dfc949f0930394afba0fca853d7094eace21037981f01 AS gobuild
 
 WORKDIR /go/src/github.com/caddyserver/xcaddy/cmd/xcaddy
 
@@ -23,7 +21,7 @@ WORKDIR /go/src/healthcheck
 COPY healthcheck.go .
 RUN go build -o /healthcheck -ldflags="-s -w" healthcheck.go
 
-FROM gcr.io/distroless/static-debian13:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:e3f945647ffb95b5839c07038d64f9811adf17308b9121d8a2b87b6a22a80a39
 EXPOSE 80 443 2019
 
 ENV XDG_CONFIG_HOME=/config
