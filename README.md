@@ -1,5 +1,5 @@
 [![CI](https://github.com/sholdee/caddy-proxy-cloudflare/actions/workflows/main.yml/badge.svg)](https://github.com/sholdee/caddy-proxy-cloudflare/actions/workflows/main.yml)
-<a href="Dockerfile"><img src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsholdee%2Fcaddy-proxy-cloudflare%2Fmain%2FDockerfile&amp;search=%5EFROM%20golang%3A(%5Cd%2B%5C.%5Cd%2B%5C.%5Cd%2B)-&amp;replace=%241&amp;label=go&amp;color=00ADD8&amp;logo=go" alt="Go Version"></a>
+<a href="Dockerfile"><img src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsholdee%2Fcaddy-proxy-cloudflare%2Fmain%2FDockerfile&amp;search=%5EFROM%28%3F%3A%20--platform%3D%5C%24BUILDPLATFORM%29%3F%20golang%3A(%5Cd%2B%5C.%5Cd%2B%5C.%5Cd%2B)-&amp;replace=%241&amp;label=go&amp;color=00ADD8&amp;logo=go" alt="Go Version"></a>
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GHCR image](https://img.shields.io/badge/image-ghcr.io%2Fsholdee%2Fcaddy--proxy--cloudflare-blue)](https://github.com/sholdee/caddy-proxy-cloudflare/pkgs/container/caddy-proxy-cloudflare)
 
