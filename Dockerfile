@@ -25,6 +25,11 @@ COPY healthcheck*.go .
 RUN go test healthcheck.go healthcheck_test.go && \
     GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /healthcheck -ldflags="-s -w" healthcheck.go
 
+FROM scratch AS binary-export
+ARG TARGETOS
+ARG TARGETARCH
+COPY --from=gobuild /go/src/github.com/caddyserver/xcaddy/cmd/caddy /caddy-proxy-cloudflare-${TARGETOS}-${TARGETARCH}
+
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:e3f945647ffb95b5839c07038d64f9811adf17308b9121d8a2b87b6a22a80a39
 EXPOSE 80 443 2019
 
