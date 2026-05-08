@@ -1,4 +1,5 @@
 [![CI](https://github.com/sholdee/caddy-proxy-cloudflare/actions/workflows/main.yml/badge.svg)](https://github.com/sholdee/caddy-proxy-cloudflare/actions/workflows/main.yml)
+<a href="Dockerfile"><img src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsholdee%2Fcaddy-proxy-cloudflare%2Fmain%2FDockerfile&amp;search=%5EFROM%20golang%3A(%5Cd%2B%5C.%5Cd%2B%5C.%5Cd%2B)-&amp;replace=%241&amp;label=go&amp;color=00ADD8&amp;logo=go" alt="Go Version"></a>
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GHCR image](https://img.shields.io/badge/image-ghcr.io%2Fsholdee%2Fcaddy--proxy--cloudflare-blue)](https://github.com/sholdee/caddy-proxy-cloudflare/pkgs/container/caddy-proxy-cloudflare)
 
@@ -12,15 +13,13 @@ This is not a beginner Caddy tutorial. It is meant for operators who already und
 
 The image is built from the repository `Dockerfile` with:
 
-| Component | Version |
-| --- | --- |
-| Caddy | `v2.11.2` |
-| `github.com/lucaslorentz/caddy-docker-proxy/v2` | `v2.12.0` |
-| `github.com/caddy-dns/cloudflare` | `v0.2.4` |
-| `github.com/WeidiDeng/caddy-cloudflare-ip` | `v0.0.0-20231130002422-f53b62aa13cb` |
-| `github.com/hslatman/caddy-crowdsec-bouncer/http` | `v0.12.1` |
-| `github.com/hslatman/caddy-crowdsec-bouncer/appsec` | `v0.12.1` |
-| `github.com/ggicci/caddy-jwt` | `v1.1.2` |
+- Caddy
+- `github.com/lucaslorentz/caddy-docker-proxy/v2`
+- `github.com/caddy-dns/cloudflare`
+- `github.com/WeidiDeng/caddy-cloudflare-ip`
+- `github.com/hslatman/caddy-crowdsec-bouncer/http`
+- `github.com/hslatman/caddy-crowdsec-bouncer/appsec`
+- `github.com/ggicci/caddy-jwt`
 
 The final image runs as `nonroot:nonroot` on a pinned distroless base image and includes a small healthcheck binary.
 
