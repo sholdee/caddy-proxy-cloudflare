@@ -37,6 +37,7 @@ jobs:
             build:
               - "Dockerfile"
               - "healthcheck.go"
+              - "healthcheck_test.go"
             renovate:
               - ".github/workflows/main.yml"
               - "renovate.json5"

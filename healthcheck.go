@@ -6,23 +6,26 @@ import (
 	"time"
 )
 
+const (
+	caddyAdminConfigURL = "http://127.0.0.1:2019/config/"
+	healthcheckTimeout  = 4 * time.Second
+)
+
 func main() {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := &http.Client{Timeout: healthcheckTimeout}
+	os.Exit(runHealthcheck(client, caddyAdminConfigURL))
+}
 
-	req, err := http.NewRequest("GET", "http://127.0.0.1:2019/config/", nil)
+func runHealthcheck(client *http.Client, url string) int {
+	resp, err := client.Get(url)
 	if err != nil {
-		os.Exit(1)
-	}
-	req.Host = "127.0.0.1:2019"
-
-	// Perform the request
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		os.Exit(1)
+		return 1
 	}
 	defer resp.Body.Close()
 
-	os.Exit(0)
+	if resp.StatusCode != http.StatusOK {
+		return 1
+	}
+
+	return 0
 }
