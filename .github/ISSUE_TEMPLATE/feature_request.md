@@ -1,20 +1,41 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Propose a module or deployment pattern
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
-
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Request Type
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+- Module addition:
+- Deployment pattern:
+- Documentation improvement:
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Problem
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+What operational problem does this solve?
+
+## Proposal
+
+Describe the change you want.
+
+## Upstream Links
+
+For module requests, link to the upstream project and release page.
+
+- Project:
+- Documentation:
+- Releases:
+
+## Why This Image
+
+Why should this belong in this opinionated image instead of being handled with a custom Caddy build or local Compose labels?
+
+## Maintenance And Security
+
+Describe expected maintenance cost, security implications, and any new permissions or network access.
+
+## Testing
+
+Can you test this in Docker Compose? If yes, describe the test environment and expected validation steps.

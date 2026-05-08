@@ -1,45 +1,37 @@
-# Security Policy
+# Security
 
-# Table of Contents
+This image is intended for internet-facing reverse proxy deployments, so security reports are taken seriously.
 
-- [Supported Versions](#supported-versions)
-- [Reporting a Vulnerability](#reporting-a-vulnerability)
-- [Disclosure Policy](#disclosure-policy)
-- [Process](#process)
-- [Preferences for Responsible Disclosure](#preferences-for-responsible-disclosure)
-- [License](#license)
+## Reporting A Vulnerability
 
-## Supported Versions
+Use GitHub private vulnerability reporting or a private security advisory when the report includes exploitable details, secrets, bypass techniques, or other sensitive information.
 
-The only versions of our *project currently* being supported with security updates are:
+Use a public issue only for non-sensitive hardening discussion, documentation gaps, or general security questions.
 
-`1.0.0`
+## What To Include
 
-## Reporting a Vulnerability
+Include enough detail to reproduce or assess the issue:
 
-We value the work of security researchers and believe that responsible disclosure of security vulnerabilities helps us ensure the security and privacy of our users.
+- affected image tag or digest
+- architecture
+- relevant Caddy, CrowdSec, or container logs
+- sanitized Compose labels
+- expected and actual behavior
+- whether Cloudflare is proxied or DNS-only for the affected hostname
 
-We encourage you to notify us if've found a security vulnerability in our product you believe you. We welcome working with you to resolve the issue promptly.
+Do not include live secrets, API tokens, private keys, or unredacted internal hostnames.
 
-## Disclosure Policy
+## Scope
 
-- Please let us know as soon as possible when you find a potential security issue, and we'll make every effort to quickly resolve the issue.
-- Provide us a reasonable amount of time to resolve the issue before any disclosure to the public or a third-party.
-- Make a good faith effort to avoid privacy violations, destruction of data, and interruption or degradation of our service during your research.
+Useful reports include:
 
-## Process
+- a vulnerability in this image's build or release process
+- unsafe default documentation in this repository
+- an issue caused by the bundled Caddy module set
+- a meaningful container hardening regression
 
-- Open a new issue in our GitHub repository with the details of the potential vulnerability. Please use as much detail as possible.
-- We will respond acknowledging receipt of your vulnerability report.
-- Our team will investigate the issue and develop an update or patch.
-- Once we have resolved the issue, we may provide acknowledgement in the commit message and in our public-facing documentation, if you grant us permission to do so.
-
-Please note, the issues tracker is only for reporting vulnerabilities. For regular bugs and issues, please use the standard issue tracker.
-
-## Preferences for Responsible Disclosure
-
-We will not take legal action against you or administrative action against your account if you act according to this policy and provide us with information about vulnerabilities in our software.
+Reports for Caddy, Cloudflare, CrowdSec, Docker, or a bundled module may need to be reported upstream when the issue is not specific to this image.
 
 ## License
 
-This Security Policy is licensed under the Eclipse Public License 2.0 (EPL-2.0).
+This security policy is licensed under the MIT license.

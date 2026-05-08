@@ -1,29 +1,64 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a deployment or image behavior problem
 title: ''
-labels: ''
+labels: bug
 assignees: ''
-
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Problem
 
-**To Reproduce**
-Steps to reproduce the behavior:
+Describe what is failing and what you expected to happen.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Image
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+- Image reference:
+- Tag:
+- Digest:
+- Architecture:
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
+## Runtime
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
+- Docker version:
+- Docker Compose version:
+- Host OS:
 
-**Additional context**
-Add any other context about the problem here.
+## Cloudflare
+
+- DNS-only or proxied:
+- DNS-01 is enabled:
+- Trusted proxy mode: static CIDRs or dynamic `cloudflare`
+
+## CrowdSec
+
+- Using CrowdSec:
+- Using appsec:
+- Relevant CrowdSec logs or metrics:
+
+## Compose
+
+Paste the smallest sanitized Compose snippet that reproduces the issue. Redact secrets and private hostnames.
+
+```yaml
+
+```
+
+## Logs
+
+Paste relevant Caddy logs and any related container logs.
+
+```text
+
+```
+
+## Generated Caddy Config
+
+If you can safely extract the generated Caddy config, paste the relevant sanitized block.
+
+```caddyfile
+
+```
+
+## Reproduction
+
+List the exact commands or steps that reproduce the issue.

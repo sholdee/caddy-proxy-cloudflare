@@ -1,5 +1,5 @@
 source: docker
 container_name:
- - caddy
+  - caddy
 labels:
   type: caddy
