@@ -6,8 +6,6 @@ services:
     container_name: caddy
     image: ghcr.io/sholdee/caddy-proxy-cloudflare:2026.05.08@sha256:16556722eca9b705660d58538b7c434aa492aa4956b557e789bee45afdd06e2d
     user: 65532:65532
-    group_add:
-      - "${DOCKER_GID}"
     privileged: false
     cap_drop:
       - ALL
@@ -20,11 +18,13 @@ services:
       - /config/caddy:uid=65532,gid=65532
     networks:
       - edge
+    depends_on:
+      - docker-socket-proxy
     environment:
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
       - CADDY_DOCKER_EVENT_THROTTLE_INTERVAL=3s
     restart: unless-stopped
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data/caddy:/data:rw
     ports:
       - "80:80/tcp"
@@ -60,8 +60,6 @@ services:
     container_name: crowdsec
     image: ghcr.io/crowdsecurity/crowdsec:v1.7.7
     user: 65532:65532
-    group_add:
-      - "${DOCKER_GID}"
     privileged: false
     cap_drop:
       - ALL
@@ -69,7 +67,10 @@ services:
       - no-new-privileges:true
     networks:
       - edge
+    depends_on:
+      - docker-socket-proxy
     environment:
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
       - TZ=${TZ}
       - GID=65532
       - USE_WAL=true
@@ -80,7 +81,6 @@ services:
       - ./data/crowdsec/data:/var/lib/crowdsec/data:rw
       - ./data/crowdsec/config:/etc/crowdsec:rw
       - ./acquis.yaml:/etc/crowdsec/acquis.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
   whoami:
@@ -104,6 +104,37 @@ services:
       caddy.route.2_appsec:
       caddy.route.3_reverse_proxy: "{{upstreams 80}}"
       caddy.route.3_reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
+
+  docker-socket-proxy:
+    container_name: docker-socket-proxy
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476
+    user: 65532:65532
+    group_add:
+      - "${DOCKER_GID}"
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /run:uid=65532,gid=65532
+      - /tmp:uid=65532,gid=65532,mode=1777
+      - /var/lib/haproxy:uid=65532,gid=65532
+    networks:
+      - edge
+    environment:
+      - CONTAINERS=1
+      - EVENTS=1
+      - INFO=1
+      - NETWORKS=1
+      - PING=1
+      - VERSION=1
+      - POST=0
+      - LOG_LEVEL=info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
 
 networks:
   edge:

@@ -7,7 +7,7 @@
 
 An opinionated Caddy image for Docker Compose homelab edge stacks. It is built for Docker label-driven Caddy config, Cloudflare DNS-01 wildcard certificates, Cloudflare client IP handling, CrowdSec/appsec enforcement, optional Cloudflare Access JWT checks, and a hardened non-root distroless runtime.
 
-This is not a beginner Caddy tutorial. It is meant for operators who already understand Docker Compose, DNS, reverse proxies, and the risk profile of mounting the Docker socket.
+This repository assumes working familiarity with Docker Compose, DNS, reverse proxies, and the Docker socket security tradeoff. It is written for operators who want a practical edge-stack pattern rather than a beginner Caddy tutorial.
 
 ## What Is Included
 
@@ -54,12 +54,17 @@ ghcr.io/sholdee/caddy-proxy-cloudflare:latest
 
 The canonical example is [`docker-compose.yml`](docker-compose.yml). It uses a small edge stack:
 
-- `caddy`: the socket-reading Caddy runtime
+- `caddy`: the Docker-label Caddy runtime
 - `caddy-config`: a no-op label carrier for global Caddy config
 - `crowdsec`: optional CrowdSec local API and appsec service
 - `whoami`: a tiny demo upstream
+- `docker-socket-proxy`: a narrow Docker API proxy for Caddy and CrowdSec
 
 The `caddy-config` container is intentional. It lets `caddy-docker-proxy` watch label changes and hot-reload generated Caddy config without recreating the actual Caddy runtime container. In practice, this keeps the edge proxy stable while still making label-driven config edits cheap.
+
+Keeping reverse-proxy configuration in Compose labels also makes the edge config GitOps-friendly: route changes can move through the same reviewed Compose workflow as the services they expose.
+
+The example does not mount the raw Docker socket into `caddy` or `crowdsec`. Those containers use `DOCKER_HOST=tcp://docker-socket-proxy:2375`, and only `docker-socket-proxy` mounts `/var/run/docker.sock`.
 
 The example pins the `2026.05.08` release by digest. Replace that image reference when you intentionally update to a newer release.
 
@@ -80,6 +85,8 @@ Set `DOCKER_GID` to the group ID that owns `/var/run/docker.sock` on the host:
 getent group docker
 ```
 
+The socket group is only added to `docker-socket-proxy`; Caddy and CrowdSec do not receive the raw socket mount.
+
 The example exposes HTTP, HTTPS, and HTTP/3:
 
 ```yaml
@@ -88,6 +95,27 @@ ports:
   - "443:443/tcp"
   - "443:443/udp"
 ```
+
+## Docker Socket Proxy
+
+The example uses [`tecnativa/docker-socket-proxy`](https://github.com/Tecnativa/docker-socket-proxy) as a blast-radius reduction layer between the edge stack and Docker. It keeps the raw Docker socket out of Caddy and CrowdSec while still allowing the Docker reads they need for label discovery, event watching, network discovery, and Docker log acquisition.
+
+The proxy is attached only to the internal `edge` network and has no host port mapping. Its Docker API surface is intentionally narrow:
+
+```yaml
+environment:
+  - CONTAINERS=1
+  - EVENTS=1
+  - INFO=1
+  - NETWORKS=1
+  - PING=1
+  - VERSION=1
+  - POST=0
+```
+
+This allows required read paths such as container list/inspect/logs, Docker events, Docker info/version, and network reads. It blocks mutating Docker API calls and leaves broad sections such as images, volumes, exec, services, tasks, swarm, secrets, build, and auth disabled.
+
+Treat socket proxy image updates as manual-review changes. The repository Renovate config detects the image but excludes it from automerge because restarting or changing the proxy can interrupt Docker API access for running Caddy and CrowdSec containers.
 
 ## Cloudflare
 
@@ -127,7 +155,7 @@ environment:
 
 That throttle prevents rapid Docker event bursts from causing repeated graceful reloads. In this stack, it is the practical workaround for reload bursts interacting poorly with the streaming bouncer/admin API path. If your environment still sees reload timeouts, increase the throttle or test the bouncer's polling mode.
 
-[`acquis.yaml`](acquis.yaml) is the minimal CrowdSec Docker acquisition file used by the example. It tells CrowdSec to read Caddy logs from the Docker socket and classify them as Caddy logs.
+[`acquis.yaml`](acquis.yaml) is the minimal CrowdSec Docker acquisition file used by the example. It tells CrowdSec to read Caddy logs through `docker-socket-proxy` and classify them as Caddy logs.
 
 ## Advanced Patterns
 
@@ -217,7 +245,7 @@ This repository is intentionally narrow:
 - It is not a general Caddy module marketplace.
 - It is not a replacement for learning Caddy, Cloudflare, Docker, or CrowdSec.
 - It is not a complete homelab security model.
-- It does not remove the risk of Docker socket access. The socket is mounted read-only, but Docker API read access is still powerful. Keep the Caddy runtime otherwise locked down and only run this pattern on hosts where that tradeoff is acceptable.
+- It does not make Docker metadata harmless. Caddy and CrowdSec no longer receive the raw socket, but the socket proxy still exposes selected Docker read APIs. Keep labels, logs, and container metadata free of secrets, and run this pattern only on hosts where that tradeoff is acceptable.
 
 ## License
 

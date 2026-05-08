@@ -1,4 +1,5 @@
 source: docker
+docker_host: tcp://docker-socket-proxy:2375
 container_name:
   - caddy
 labels:
