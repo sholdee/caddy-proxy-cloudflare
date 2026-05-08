@@ -379,6 +379,7 @@ jobs:
           EOF
 
           gh release create "${TAG}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "${TAG}" \
             --notes-file release-notes.md \
             --verify-tag \
