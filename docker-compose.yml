@@ -1,93 +1,39 @@
-services:
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-go/refs/heads/main/schema/compose-spec.json
 
+services:
   caddy:
     container_name: caddy
-    image: sholdee/caddy-proxy-cloudflare:latest
-    user: 65532:65532                                              # use non-root user
-    group_add:                                                     # add docker group ID from /etc/group for docker socket access
-      - 123
-    privileged: false
-    cap_drop:
-      - ALL                                                        # drop all capabilities
-    cap_add:
-      - NET_BIND_SERVICE                                           # add NET_BIND_SERVICE to bind ports <=1024
-    security_opt:
-      - no-new-privileges:true                                     # deny privilege escalation
-    read_only: true                                                # set read-only root filesystem
-    tmpfs:                                                         # autosaved config does not need to be persisted
-      - /config
-    networks:
-      - caddy
-    dns:                                                           # set container DNS to Cloudflare
-      - 1.1.1.1
-      - 1.0.0.1
-    restart: unless-stopped
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"             # need socket to read labels and events
-      - "/opt/docker/caddy/data:/data:rw"                          # need for certiticate storage, make sure to chown -R 65532:65532
-    ports:
-      - "80:80/tcp"
-      - "443:443/tcp"
-    labels:                                                        # global options
-      caddy.email: "email@example.com"                             # need for ACME cert regsitration account
-      caddy.acme_dns: "cloudflare ${CF_TOKEN}"                     # replace ${CF_TOKEN} with your Cloudflare API token
-      caddy.servers.trusted_proxies: "cloudflare"                  # trust Cloudflare IP proxy headers via caddy-cloudflare-ip module
-      caddy.servers.trusted_proxies.interval: "1h"                 # optional Cloudflare IP refresh interval, default is 24h
-      caddy.servers.trusted_proxies.timeout: "15s"                 # time to wait for response from Cloudflare, default is no timeout
-      caddy.servers.client_ip_headers: "Cf-Connecting-Ip"          # use Cf-Connecting-Ip header as the client IP
-      caddy.servers.trusted_proxies_strict:                        # use strict processing of client_ip_headers
-      caddy.log.output: "stdout"                                   # set global option to log to stdout
-      caddy.persist_config: "off"                                  # persist_config not needed with docker proxy module configuration
-      caddy.crowdsec.api_url: "http://crowdsec:8080"               # api url for crowdsec container
-      caddy.crowdsec.api_key: "${CROWDSEC_API_KEY}"                # crowdsec api key that is set for caddy
-      caddy.crowdsec.disable_streaming:                            # use live bouncer. currently, admin api hangs with streaming bouncer on reloads by docker module
-      caddy.crowdsec.ticker_interval: "7s"                         # crowdsec local api poll interval. default 60s
-      caddy_0: "*.domain.com"                                      # example labels for proxying an external service by IP
-      caddy_0.log:                                                 # enable logging for *.domain.com block
-      caddy_0.1_@service: "host service.domain.com"
-      caddy_0.1_handle: "@service"
-      caddy_0.1_handle.route.crowdsec:                             # add crowdsec to this upstream via route block
-      caddy_0.1_handle.route.reverse_proxy: http://10.1.1.10:8080
-      caddy_0.1_handle.route.reverse_proxy.header_up: "X-Forwarded-For {client_ip}" # set X-Forwarded-For header to client_ip
-      caddy_1: "*.domain.com"
-      caddy_1.1_@example: "host example.domain.com"
-      caddy_1.1_handle: "@example"
-      caddy_1.1_handle.route.crowdsec:
-      caddy_1.1_handle.route.reverse_proxy: http://10.1.1.20:8000
-      caddy_1.1_handle.route.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
-
-  crowdsec:
-    container_name: crowdsec
-    image: crowdsecurity/crowdsec:latest
+    image: ghcr.io/sholdee/caddy-proxy-cloudflare:2026.05.08@sha256:16556722eca9b705660d58538b7c434aa492aa4956b557e789bee45afdd06e2d
     user: 65532:65532
     group_add:
-      - 123
+      - "${DOCKER_GID}"
     privileged: false
     cap_drop:
       - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /config/caddy:uid=65532,gid=65532
     networks:
-      - caddy
+      - edge
     environment:
-      - TZ=America/Chicago
-      - GID=65532
-      - USE_WAL=true
-      - COLLECTIONS=crowdsecurity/linux crowdsecurity/caddy crowdsecurity/whitelist-good-actors # base collections for caddy
-      - PARSERS=crowdsecurity/whitelists                          # whitelist internal ip addresses
-      - BOUNCER_KEY_CADDY=${CROWDSEC_API_KEY}                     # the api key that will be set for caddy
-      - ENROLL_KEY=${ENROLL_KEY}                                  # optional enrollment key for crowdsec hub
-    volumes:
-      - /opt/docker/crowdsec/data:/var/lib/crowdsec/data:rw       # crowdsec data dir
-      - /opt/docker/crowdsec/config:/etc/crowdsec:rw              # crowdsec config dir
-      - /opt/docker/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro # our log sources config
-      - /var/run/docker.sock:/var/run/docker.sock:ro              # need to mount docker socket to read stdout logs
+      - CADDY_DOCKER_EVENT_THROTTLE_INTERVAL=3s
     restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/caddy:/data:rw
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "443:443/udp"
 
-  whoami:
-    container_name: whoami
-    image: jwilder/whoami:latest
-    hostname: TheDocker                                           # Expected result using curl
+  caddy-config:
+    container_name: caddy-config
+    image: tianon/true@sha256:068f4cb3e2189f678cb9243477003adc3d1dbe04f789c10f7d6f942f7ad35f7f
     user: 65532:65532
     privileged: false
     cap_drop:
@@ -96,15 +42,68 @@ services:
       - no-new-privileges:true
     read_only: true
     networks:
-      - caddy
+      - edge
     restart: unless-stopped
     labels:
-      caddy: "*.domain.com"
-      caddy.1_@whoami: "host whoami.domain.com"
-      caddy.1_handle: "@whoami"
-      caddy.1_handle.route.crowdsec:
-      caddy.1_handle.route.reverse_proxy: "{{upstreams 8000}}"    # set http port that caddy will send traffic
-      caddy.1_handle.route.reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
+      caddy.email: "${EMAIL_ADDR}"
+      caddy.acme_dns: "cloudflare ${CF_TOKEN}"
+      caddy.tls_resolvers: "1.1.1.1 1.0.0.1"
+      caddy.servers.trusted_proxies: "static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22"
+      caddy.servers.client_ip_headers: "Cf-Connecting-Ip"
+      caddy.log.output: "stdout"
+      caddy.persist_config: "off"
+      caddy.crowdsec.api_url: "http://crowdsec:8080"
+      caddy.crowdsec.appsec_url: "http://crowdsec:7422"
+      caddy.crowdsec.api_key: "${CROWDSEC_API_KEY}"
+
+  crowdsec:
+    container_name: crowdsec
+    image: ghcr.io/crowdsecurity/crowdsec:v1.7.6
+    user: 65532:65532
+    group_add:
+      - "${DOCKER_GID}"
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+    environment:
+      - TZ=${TZ}
+      - GID=65532
+      - USE_WAL=true
+      - COLLECTIONS=crowdsecurity/linux crowdsecurity/caddy crowdsecurity/whitelist-good-actors crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules
+      - PARSERS=crowdsecurity/whitelists
+      - BOUNCER_KEY_CADDY=${CROWDSEC_API_KEY}
+    volumes:
+      - ./data/crowdsec/data:/var/lib/crowdsec/data:rw
+      - ./data/crowdsec/config:/etc/crowdsec:rw
+      - ./acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  whoami:
+    container_name: whoami
+    image: docker.io/traefik/whoami:v1.11.0
+    user: 65532:65532
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    networks:
+      - edge
+    restart: unless-stopped
+    labels:
+      caddy: "whoami.${DOMAIN}"
+      caddy.log:
+      caddy.encode: "zstd gzip"
+      caddy.route.1_crowdsec:
+      caddy.route.2_appsec:
+      caddy.route.3_reverse_proxy: "{{upstreams 80}}"
+      caddy.route.3_reverse_proxy.header_up: "X-Forwarded-For {client_ip}"
 
 networks:
-  caddy:
+  edge:
