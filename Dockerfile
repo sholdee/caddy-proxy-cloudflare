@@ -1,4 +1,7 @@
-FROM golang:1.26.3-trixie@sha256:38a4ee13cf5097699c2dfc949f0930394afba0fca853d7094eace21037981f01 AS gobuild
+FROM --platform=$BUILDPLATFORM golang:1.26.3-trixie@sha256:38a4ee13cf5097699c2dfc949f0930394afba0fca853d7094eace21037981f01 AS gobuild
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /go/src/github.com/caddyserver/xcaddy/cmd/xcaddy
 
@@ -8,7 +11,7 @@ RUN apt update && apt install -y git gcc build-essential && \
 ENV CGO_ENABLED=0
 ENV CADDY_VERSION=v2.11.2
 
-RUN xcaddy build \
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --output /go/src/github.com/caddyserver/xcaddy/cmd/caddy \
     --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.12.0 \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
@@ -20,7 +23,7 @@ RUN xcaddy build \
 WORKDIR /go/src/healthcheck
 COPY healthcheck*.go .
 RUN go test healthcheck.go healthcheck_test.go && \
-    go build -o /healthcheck -ldflags="-s -w" healthcheck.go
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /healthcheck -ldflags="-s -w" healthcheck.go
 
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:e3f945647ffb95b5839c07038d64f9811adf17308b9121d8a2b87b6a22a80a39
 EXPOSE 80 443 2019
