@@ -66,8 +66,6 @@ Keeping reverse-proxy configuration in Compose labels also makes the edge config
 
 The example does not mount the raw Docker socket into `caddy` or `crowdsec`. Those containers use `DOCKER_HOST=tcp://docker-socket-proxy:2375`, and only `docker-socket-proxy` mounts `/var/run/docker.sock`.
 
-The example pins the `2026.05.08` release by digest. Replace that image reference when you intentionally update to a newer release.
-
 Create a local `.env` for the example:
 
 ```env
@@ -163,6 +161,8 @@ That throttle prevents rapid Docker event bursts from causing repeated graceful 
 
 The image includes `caddy-jwt`, so a route can require Cloudflare Access JWTs. Keep this out of the global default unless every service behind that route should require Access.
 
+The snippet below applies JWT auth only when the client IP is outside the listed internal LAN CIDRs. That pattern is useful for split-DNS deployments where local clients can reach the service directly while remote clients must pass through Cloudflare Access.
+
 ```yaml
 labels:
   caddy: "app.${DOMAIN}"
@@ -249,4 +249,4 @@ This repository is intentionally narrow:
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+[`MIT`](LICENSE)
