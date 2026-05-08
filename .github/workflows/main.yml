@@ -363,7 +363,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          cat > release-notes.md <<EOF
+          generated_notes="$(
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+              -f tag_name="${TAG}" \
+              -f target_commitish="${GITHUB_SHA}" \
+              --jq .body
+          )"
+
+          artifact_notes="$(cat <<EOF
           Image:
           - ghcr.io/${GITHUB_REPOSITORY_OWNER}/caddy-proxy-cloudflare:${TAG}
           - docker.io/sholdee/caddy-proxy-cloudflare:${TAG}
@@ -377,11 +385,16 @@ jobs:
           - checksums-sha256.txt
           - checksums-sha256.txt.sigstore.json
           EOF
+          )"
+
+          release_notes="${generated_notes}
+
+          ${artifact_notes}"
 
           gh release create "${TAG}" dist/* \
             --repo "${GITHUB_REPOSITORY}" \
             --title "${TAG}" \
-            --notes-file release-notes.md \
+            --notes "${release_notes}" \
             --verify-tag \
             --latest
 
