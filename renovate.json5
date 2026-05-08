@@ -14,6 +14,16 @@
       automerge: true,
     },
     {
+      description: 'Avoid automerging Docker socket proxy updates that can interrupt Docker API access',
+      matchDatasources: [
+        'docker',
+      ],
+      matchPackageNames: [
+        '/tecnativa\\/docker-socket-proxy/',
+      ],
+      automerge: false,
+    },
+    {
       groupName: 'caddy-crowdsec-bouncer',
       matchPackageNames: [
         '/github\\.com/hslatman/caddy-crowdsec-bouncer/',
