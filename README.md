@@ -20,6 +20,7 @@ The image is built from the repository `Dockerfile` with:
 - `github.com/hslatman/caddy-crowdsec-bouncer/http`
 - `github.com/hslatman/caddy-crowdsec-bouncer/appsec`
 - `github.com/ggicci/caddy-jwt`
+- `github.com/zhangjiayin/caddy-geoip2`
 
 The final image runs as `nonroot:nonroot` on a pinned distroless base image and includes a small healthcheck binary.
 
