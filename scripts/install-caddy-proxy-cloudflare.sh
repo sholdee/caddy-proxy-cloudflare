@@ -16,16 +16,25 @@ RESTORE_PATH=""
 ASSET=""
 WORKDIR=""
 COSIGN_STATUS="not checked"
+IDLE_INTERVAL="5m"
+IDLE_PORTS="80,443"
+IDLE_TIMEOUT="2h"
 
 DRY_RUN=false
 FORCE_SERVICE=false
+IF_OUTDATED=false
 INSTALL_SERVICE=false
 LIST_MODULES=false
 NO_RESTART=false
 REQUIRE_COSIGN=false
 START_SERVICE=false
 AUTO_YES=false
+WAIT_IDLE=false
 WRITE_DEFAULT_CADDYFILE=false
+
+IDLE_INTERVAL_SET=false
+IDLE_PORTS_SET=false
+IDLE_TIMEOUT_SET=false
 
 SUDO=()
 
@@ -42,6 +51,11 @@ Options:
   --version <tag>              Install a specific release tag instead of latest
   --target <path>              Install or restore to a specific caddy binary path
   --dry-run                    Download and verify only; do not install or restart
+  --if-outdated                Exit without changes when the installed binary matches the selected release
+  --wait-idle                  Before updating, wait until watched Caddy ports have no established connections
+  --idle-timeout <duration>    Maximum time to wait for idle connections (default: 2h)
+  --idle-interval <duration>   Delay between idle checks (default: 5m)
+  --idle-ports <csv>           Local TCP ports to watch for established connections (default: 80,443)
   --require-cosign             Fail if cosign verification cannot be completed
   --install-service            Install a Caddyfile-based systemd caddy.service
   --force-service              Overwrite an existing caddy.service with --install-service
@@ -55,6 +69,7 @@ Options:
 Examples:
   ./install-caddy-proxy-cloudflare.sh
   ./install-caddy-proxy-cloudflare.sh --version v2026.509.50351
+  ./install-caddy-proxy-cloudflare.sh --yes --if-outdated --wait-idle
   ./install-caddy-proxy-cloudflare.sh --install-service
   ./install-caddy-proxy-cloudflare.sh restore
   ./install-caddy-proxy-cloudflare.sh restore /var/backups/caddy-proxy-cloudflare/caddy.20260509T120000Z
@@ -264,6 +279,126 @@ ensure_required_tools_no_install() {
   exit 1
 }
 
+install_ss_package() {
+  local manager="$1"
+
+  require_sudo
+  case "${manager}" in
+    apt-get)
+      "${SUDO[@]}" apt-get update
+      "${SUDO[@]}" apt-get install -y iproute2
+      ;;
+    dnf)
+      "${SUDO[@]}" dnf install -y iproute
+      ;;
+    yum)
+      "${SUDO[@]}" yum install -y iproute
+      ;;
+    pacman)
+      "${SUDO[@]}" pacman -Sy --noconfirm iproute2
+      ;;
+    apk)
+      "${SUDO[@]}" apk add --no-cache iproute2
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+ensure_idle_tools() {
+  local manager
+
+  if command -v ss >/dev/null 2>&1; then
+    return 0
+  fi
+
+  warn "--wait-idle requires ss, but ss was not found."
+
+  if [[ "${AUTO_YES}" == "true" || "${DRY_RUN}" == "true" ]]; then
+    err "Install ss/iproute2 and run this command again."
+    exit 1
+  fi
+
+  manager="$(detect_package_manager)"
+  if [[ -n "${manager}" ]] && prompt_yes_no "Install ss/iproute2 with ${manager}?" yes; then
+    install_ss_package "${manager}"
+  else
+    err "Install ss/iproute2 and run this command again."
+    exit 1
+  fi
+
+  if ! command -v ss >/dev/null 2>&1; then
+    err "ss is still unavailable after package installation."
+    exit 1
+  fi
+}
+
+hash_file() {
+  local path="$1"
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    if [[ -r "${path}" ]]; then
+      sha256sum "${path}" | awk '{print $1}'
+    else
+      require_sudo
+      "${SUDO[@]}" sha256sum "${path}" | awk '{print $1}'
+    fi
+  elif command -v shasum >/dev/null 2>&1; then
+    if [[ -r "${path}" ]]; then
+      shasum -a 256 "${path}" | awk '{print $1}'
+    else
+      require_sudo
+      "${SUDO[@]}" shasum -a 256 "${path}" | awk '{print $1}'
+    fi
+  else
+    err "sha256sum or shasum is required."
+    exit 1
+  fi
+}
+
+duration_seconds() {
+  local raw="$1"
+  local number unit
+
+  if [[ "${raw}" =~ ^([0-9]+)([smh]?)$ ]]; then
+    number="${BASH_REMATCH[1]}"
+    unit="${BASH_REMATCH[2]}"
+  else
+    err "Invalid duration: ${raw}. Use seconds, or suffix with s, m, or h."
+    exit 1
+  fi
+
+  case "${unit}" in
+    ""|s) printf "%s" "$((10#${number}))" ;;
+    m) printf "%s" "$((10#${number} * 60))" ;;
+    h) printf "%s" "$((10#${number} * 3600))" ;;
+    *)
+      err "Invalid duration unit: ${unit}"
+      exit 1
+      ;;
+  esac
+}
+
+validate_idle_ports() {
+  local raw="$1"
+  local port
+  local -a ports
+
+  if [[ ! "${raw}" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+    err "Invalid --idle-ports value: ${raw}. Use a comma-separated list such as 80,443."
+    exit 1
+  fi
+
+  IFS=',' read -r -a ports <<<"${raw}"
+  for port in "${ports[@]}"; do
+    if ((port < 1 || port > 65535)); then
+      err "Invalid port in --idle-ports: ${port}"
+      exit 1
+    fi
+  done
+}
+
 cosign_asset_arch() {
   case "$(uname -m)" in
     amd64|x86_64) printf "amd64" ;;
@@ -342,17 +477,135 @@ resolve_release() {
   fi
 }
 
+ensure_workdir() {
+  if [[ -z "${WORKDIR}" ]]; then
+    WORKDIR="$(mktemp -d)"
+  fi
+}
+
+download_checksums() {
+  ensure_workdir
+  if [[ -f "${WORKDIR}/checksums-sha256.txt" ]]; then
+    return 0
+  fi
+
+  log "Downloading checksum manifest for ${REPO} ${TAG}"
+  curl -fsSL "${SUMS_URL}" -o "${WORKDIR}/checksums-sha256.txt"
+}
+
 download_assets() {
-  WORKDIR="$(mktemp -d)"
+  ensure_workdir
 
   log "Downloading ${REPO} ${TAG}"
   curl -fsSL "${ASSET_URL}" -o "${WORKDIR}/${ASSET}"
-  curl -fsSL "${SUMS_URL}" -o "${WORKDIR}/checksums-sha256.txt"
+  download_checksums
   if [[ -n "${BUNDLE_URL}" && "${BUNDLE_URL}" != "null" ]]; then
     curl -fsSL "${BUNDLE_URL}" -o "${WORKDIR}/checksums-sha256.txt.sigstore.json"
   fi
   chmod 0755 "${WORKDIR}/${ASSET}"
   ok "Downloaded release assets"
+}
+
+expected_asset_checksum() {
+  local checksum
+
+  checksum="$(awk -v asset="${ASSET}" '$2 == asset {print $1}' "${WORKDIR}/checksums-sha256.txt")"
+  if [[ -z "${checksum}" ]]; then
+    err "No checksum entry found for ${ASSET}."
+    exit 1
+  fi
+
+  printf "%s" "${checksum}"
+}
+
+target_matches_release() {
+  local expected actual
+
+  if [[ ! -e "${TARGET_PATH}" ]]; then
+    return 1
+  fi
+
+  expected="$(expected_asset_checksum)"
+  actual="$(hash_file "${TARGET_PATH}")"
+  [[ "${actual}" == "${expected}" ]]
+}
+
+maybe_exit_if_current() {
+  if [[ "${IF_OUTDATED}" != "true" ]]; then
+    return 0
+  fi
+
+  download_checksums
+  if target_matches_release; then
+    ok "${TARGET_PATH} already matches ${TAG}; no update needed."
+    exit 0
+  fi
+
+  if [[ -e "${TARGET_PATH}" ]]; then
+    log "${TARGET_PATH} does not match ${TAG}; update needed."
+  else
+    log "${TARGET_PATH} is missing; install needed."
+  fi
+}
+
+idle_filter_expression() {
+  local expr="("
+  local port
+  local separator=""
+  local -a ports
+
+  IFS=',' read -r -a ports <<<"${IDLE_PORTS}"
+  for port in "${ports[@]}"; do
+    expr+="${separator} sport = :${port}"
+    separator=" or"
+  done
+  expr+=" )"
+
+  printf "%s" "${expr}"
+}
+
+active_connection_count() {
+  local filter
+
+  filter="$(idle_filter_expression)"
+  ss -Htan state established "${filter}" 2>/dev/null | wc -l | tr -d '[:space:]'
+}
+
+wait_for_idle_connections() {
+  local timeout interval start now elapsed count
+
+  if [[ "${WAIT_IDLE}" != "true" ]]; then
+    return 0
+  fi
+
+  ensure_idle_tools
+  timeout="$(duration_seconds "${IDLE_TIMEOUT}")"
+  interval="$(duration_seconds "${IDLE_INTERVAL}")"
+  start="$(date +%s)"
+
+  if ((interval < 1)); then
+    err "--idle-interval must be at least 1 second."
+    exit 1
+  fi
+
+  log "Waiting for idle Caddy connections on ports ${IDLE_PORTS}"
+  while true; do
+    count="$(active_connection_count)"
+    if [[ "${count}" == "0" ]]; then
+      ok "No active Caddy connections found."
+      return 0
+    fi
+
+    now="$(date +%s)"
+    elapsed="$((now - start))"
+    if ((elapsed >= timeout)); then
+      warn "Deferred update: ${count} active Caddy connection(s) remained after ${IDLE_TIMEOUT}."
+      exit 0
+    fi
+
+    log "Found ${count} active Caddy connection(s); retrying in ${IDLE_INTERVAL}"
+    sleep "${interval}"
+  done
 }
 
 verify_checksum() {
@@ -808,6 +1061,28 @@ parse_args() {
         DRY_RUN=true
         shift
         ;;
+      --if-outdated)
+        IF_OUTDATED=true
+        shift
+        ;;
+      --idle-interval)
+        IDLE_INTERVAL="${2:-}"
+        [[ -n "${IDLE_INTERVAL}" ]] || { err "--idle-interval requires a duration"; exit 1; }
+        IDLE_INTERVAL_SET=true
+        shift 2
+        ;;
+      --idle-ports)
+        IDLE_PORTS="${2:-}"
+        [[ -n "${IDLE_PORTS}" ]] || { err "--idle-ports requires a comma-separated port list"; exit 1; }
+        IDLE_PORTS_SET=true
+        shift 2
+        ;;
+      --idle-timeout)
+        IDLE_TIMEOUT="${2:-}"
+        [[ -n "${IDLE_TIMEOUT}" ]] || { err "--idle-timeout requires a duration"; exit 1; }
+        IDLE_TIMEOUT_SET=true
+        shift 2
+        ;;
       --force-service)
         FORCE_SERVICE=true
         shift
@@ -832,6 +1107,10 @@ parse_args() {
         START_SERVICE=true
         shift
         ;;
+      --wait-idle)
+        WAIT_IDLE=true
+        shift
+        ;;
       -y|--yes)
         AUTO_YES=true
         shift
@@ -853,6 +1132,26 @@ parse_args() {
   done
 }
 
+validate_args() {
+  if [[ "${ACTION}" != "install" ]]; then
+    if [[ "${IF_OUTDATED}" == "true" || "${WAIT_IDLE}" == "true" || "${IDLE_INTERVAL_SET}" == "true" || "${IDLE_PORTS_SET}" == "true" || "${IDLE_TIMEOUT_SET}" == "true" ]]; then
+      err "--if-outdated and --wait-idle options only apply to install/update mode."
+      exit 1
+    fi
+  fi
+
+  if [[ "${WAIT_IDLE}" != "true" ]]; then
+    if [[ "${IDLE_INTERVAL_SET}" == "true" || "${IDLE_PORTS_SET}" == "true" || "${IDLE_TIMEOUT_SET}" == "true" ]]; then
+      err "--idle-timeout, --idle-interval, and --idle-ports require --wait-idle."
+      exit 1
+    fi
+  else
+    duration_seconds "${IDLE_TIMEOUT}" >/dev/null
+    duration_seconds "${IDLE_INTERVAL}" >/dev/null
+    validate_idle_ports "${IDLE_PORTS}"
+  fi
+}
+
 install_or_update() {
   detect_target_asset
   if [[ "${DRY_RUN}" == "true" ]]; then
@@ -860,7 +1159,17 @@ install_or_update() {
   else
     ensure_required_tools
   fi
+  resolve_target_path
   resolve_release
+  maybe_exit_if_current
+
+  if [[ "${DRY_RUN}" != "true" ]]; then
+    preflight_service_plan
+    wait_for_idle_connections
+  elif [[ "${WAIT_IDLE}" == "true" ]]; then
+    warn "Skipping idle wait because --dry-run was set."
+  fi
+
   download_assets
   verify_assets
 
@@ -869,10 +1178,8 @@ install_or_update() {
     return 0
   fi
 
-  resolve_target_path
   capture_target_metadata
   plan_backup_path
-  preflight_service_plan
   print_install_plan
   confirm_or_exit "Continue with install/update?"
 
@@ -893,6 +1200,7 @@ install_or_update() {
 
 main() {
   parse_args "$@"
+  validate_args
   set_sudo
 
   printf " Caddy Proxy Cloudflare Installer\n"
