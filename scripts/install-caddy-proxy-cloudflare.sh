@@ -78,20 +78,25 @@ prompt_yes_no() {
   local prompt="$1"
   local default="${2:-yes}"
   local answer
+  local suffix
 
   if [[ "${AUTO_YES}" == "true" ]]; then
     return 0
   fi
 
-  if [[ ! -t 0 ]]; then
+  if ! { : </dev/tty >/dev/tty; } 2>/dev/null; then
     return 1
   fi
 
   if [[ "${default}" == "yes" ]]; then
-    read -r -p "${prompt} [Y/n] " answer
+    suffix="[Y/n]"
+    printf "%s %s " "${prompt}" "${suffix}" >/dev/tty
+    IFS= read -r answer </dev/tty || return 1
     [[ -z "${answer}" || "${answer}" =~ ^[Yy]$ ]]
   else
-    read -r -p "${prompt} [y/N] " answer
+    suffix="[y/N]"
+    printf "%s %s " "${prompt}" "${suffix}" >/dev/tty
+    IFS= read -r answer </dev/tty || return 1
     [[ "${answer}" =~ ^[Yy]$ ]]
   fi
 }
@@ -104,8 +109,10 @@ confirm_or_exit() {
     return 0
   fi
 
-  if [[ ! -t 0 ]]; then
-    err "Refusing to modify the system non-interactively without --yes."
+  if ! { : </dev/tty >/dev/tty; } 2>/dev/null; then
+    err "Refusing to modify the system without an interactive terminal or --yes."
+    err "For interactive installs, run from a terminal: curl -fsSL https://cpcf.shold.io | bash"
+    err "For automation, use: curl -fsSL https://cpcf.shold.io | bash -s -- --yes"
     exit 1
   fi
 
