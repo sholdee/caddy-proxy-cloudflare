@@ -107,7 +107,7 @@ services:
 
   docker-socket-proxy:
     container_name: docker-socket-proxy
-    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476
+    image: ghcr.io/wollomatic/socket-proxy:1.12.0@sha256:e83ef9a87bf2e99b70428fd25f91fb167b75d4a45d28046c7bd2ff09d2d7b486
     user: 65532:65532
     group_add:
       - "${DOCKER_GID}"
@@ -120,18 +120,16 @@ services:
     tmpfs:
       - /run:uid=65532,gid=65532
       - /tmp:uid=65532,gid=65532,mode=1777
-      - /var/lib/haproxy:uid=65532,gid=65532
     networks:
       - edge
-    environment:
-      - CONTAINERS=1
-      - EVENTS=1
-      - INFO=1
-      - NETWORKS=1
-      - PING=1
-      - VERSION=1
-      - POST=0
-      - LOG_LEVEL=info
+    command:
+      - "-listenip=0.0.0.0"
+      - "-allowfrom=caddy,crowdsec"
+      - "-allowHEAD=^(/v[0-9.]+)?/_ping$"
+      - "-allowGET=^(/v[0-9.]+)?/(info|version|containers/json|containers/[^/]+/json|containers/[^/]+/logs|networks/[^/]+|events)(\\?.*)?$"
+      - "-loglevel=INFO"
+      - "-watchdoginterval=60"
+      - "-stoponwatchdog"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped

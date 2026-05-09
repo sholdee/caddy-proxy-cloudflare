@@ -156,19 +156,16 @@ ports:
 
 ## Docker Socket Proxy
 
-The example uses [`tecnativa/docker-socket-proxy`](https://github.com/Tecnativa/docker-socket-proxy) as a blast-radius reduction layer between the edge stack and Docker. It keeps the raw Docker socket out of Caddy and CrowdSec while still allowing the Docker reads they need for label discovery, event watching, network discovery, and Docker log acquisition.
+The example uses [`wollomatic/socket-proxy`](https://github.com/wollomatic/socket-proxy) as a blast-radius reduction layer between the edge stack and Docker. It keeps the raw Docker socket out of Caddy and CrowdSec while still allowing the Docker reads they need for label discovery, event watching, network discovery, and Docker log acquisition.
 
 The proxy is attached only to the internal `edge` network and has no host port mapping. Its Docker API surface is intentionally narrow:
 
 ```yaml
-environment:
-  - CONTAINERS=1
-  - EVENTS=1
-  - INFO=1
-  - NETWORKS=1
-  - PING=1
-  - VERSION=1
-  - POST=0
+command:
+  - "-listenip=0.0.0.0"
+  - "-allowfrom=caddy,crowdsec"
+  - "-allowHEAD=^(/v[0-9.]+)?/_ping$"
+  - "-allowGET=^(/v[0-9.]+)?/(info|version|containers/json|containers/[^/]+/json|containers/[^/]+/logs|networks/[^/]+|events)(\\?.*)?$"
 ```
 
 This allows required read paths such as container list/inspect/logs, Docker events, Docker info/version, and network reads. It blocks mutating Docker API calls and leaves broad sections such as images, volumes, exec, services, tasks, swarm, secrets, build, and auth disabled.

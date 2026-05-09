@@ -19,7 +19,7 @@
         'docker',
       ],
       matchPackageNames: [
-        '/tecnativa\\/docker-socket-proxy/',
+        '/wollomatic\\/socket-proxy/',
       ],
       automerge: false,
     },
