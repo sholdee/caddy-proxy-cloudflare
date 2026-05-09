@@ -168,7 +168,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          TAG="$(date -u '+v%Y.%-m%d.%-H%M%S')"
+          read -r YEAR MONTH DAY HOUR MINUTE SECOND < <(date -u '+%Y %m %d %H %M %S')
+          MDD=$((10#${MONTH} * 100 + 10#${DAY}))
+          HMMSS=$((10#${HOUR} * 10000 + 10#${MINUTE} * 100 + 10#${SECOND}))
+          TAG="v${YEAR}.${MDD}.${HMMSS}"
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
           git tag "${TAG}" "${GITHUB_SHA}"

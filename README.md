@@ -41,11 +41,11 @@ docker.io/sholdee/caddy-proxy-cloudflare
 Recommended reference styles:
 
 ```text
-# Production: pin a date tag and digest.
-ghcr.io/sholdee/caddy-proxy-cloudflare:YYYY.MM.DD@sha256:<digest>
+# Production: pin a release tag and digest.
+ghcr.io/sholdee/caddy-proxy-cloudflare:vYYYY.MDD.HMMSS@sha256:<digest>
 
-# Normal updates: use the date tag.
-ghcr.io/sholdee/caddy-proxy-cloudflare:YYYY.MM.DD
+# Normal updates: use the release tag.
+ghcr.io/sholdee/caddy-proxy-cloudflare:vYYYY.MDD.HMMSS
 
 # Quick tests only.
 ghcr.io/sholdee/caddy-proxy-cloudflare:latest
@@ -213,16 +213,16 @@ If Caddy is not issuing certificates, check the Cloudflare token scope, DNS zone
 
 ## Updating Digests
 
-Resolve the digest for a date tag:
+Resolve the digest for a release tag:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/sholdee/caddy-proxy-cloudflare:YYYY.MM.DD
+docker buildx imagetools inspect ghcr.io/sholdee/caddy-proxy-cloudflare:vYYYY.MDD.HMMSS
 ```
 
 Copy the top-level manifest digest into Compose:
 
 ```yaml
-image: ghcr.io/sholdee/caddy-proxy-cloudflare:YYYY.MM.DD@sha256:<digest>
+image: ghcr.io/sholdee/caddy-proxy-cloudflare:vYYYY.MDD.HMMSS@sha256:<digest>
 ```
 
 If you run Renovate against your Compose repository, it can also maintain digest-pinned image references.
