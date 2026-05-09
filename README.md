@@ -17,8 +17,10 @@ The image is built from the repository `Dockerfile` with:
 - `github.com/lucaslorentz/caddy-docker-proxy/v2`
 - `github.com/caddy-dns/cloudflare`
 - `github.com/WeidiDeng/caddy-cloudflare-ip`
+- `github.com/mholt/caddy-l4`
 - `github.com/hslatman/caddy-crowdsec-bouncer/http`
 - `github.com/hslatman/caddy-crowdsec-bouncer/appsec`
+- `github.com/hslatman/caddy-crowdsec-bouncer/layer4`
 - `github.com/ggicci/caddy-jwt`
 - `github.com/zhangjiayin/caddy-geoip2`
 
@@ -195,6 +197,12 @@ That throttle prevents rapid Docker event bursts from causing repeated graceful 
 [`acquis.yaml`](acquis.yaml) is the minimal CrowdSec Docker acquisition file used by the example. It tells CrowdSec to read Caddy logs through `docker-socket-proxy` and classify them as Caddy logs.
 
 ## Advanced Patterns
+
+### Layer 4 Routing
+
+The image includes `caddy-l4` and the CrowdSec Layer 4 matcher for advanced TCP/UDP edge routing, such as SNI-based TCP proxying or non-HTTP services that should still be checked against CrowdSec decisions.
+
+The canonical Compose example stays HTTP-focused and does not expose Layer 4 listeners by default.
 
 ### Cloudflare Access JWT
 

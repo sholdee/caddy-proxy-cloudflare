@@ -24,6 +24,7 @@
       automerge: false,
     },
     {
+      description: 'Keep CrowdSec bouncer module updates together, including HTTP, AppSec, and Layer 4 packages',
       groupName: 'caddy-crowdsec-bouncer',
       matchPackageNames: [
         '/github\\.com/hslatman/caddy-crowdsec-bouncer/',

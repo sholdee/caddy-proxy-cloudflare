@@ -16,8 +16,10 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.12.0 \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
     --with github.com/WeidiDeng/caddy-cloudflare-ip@v0.0.0-20231130002422-f53b62aa13cb \
+    --with github.com/mholt/caddy-l4@v0.1.0 \
     --with github.com/hslatman/caddy-crowdsec-bouncer/http@v0.12.1 \
     --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.12.1 \
+    --with github.com/hslatman/caddy-crowdsec-bouncer/layer4@v0.12.1 \
     --with github.com/ggicci/caddy-jwt@v1.1.2 \
     --with github.com/zhangjiayin/caddy-geoip2@v0.0.0-20251231005803-9e40d38250b4
 
