@@ -55,17 +55,23 @@ ghcr.io/sholdee/caddy-proxy-cloudflare:latest
 
 Docker is the primary deployment target, but releases also include Linux `amd64` and `arm64` Caddy binaries for host installs.
 
-Download the installer:
+Quick install/update:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sholdee/caddy-proxy-cloudflare/main/scripts/install-caddy-proxy-cloudflare.sh \
-  -o install-caddy-proxy-cloudflare.sh
-chmod +x install-caddy-proxy-cloudflare.sh
+curl -fsSL https://cpcf.shold.io | bash
 ```
 
-Install or update to the latest release:
+With flags:
 
 ```bash
+curl -fsSL https://cpcf.shold.io | bash -s -- --yes --install-service --write-default-caddyfile --start
+```
+
+Review-first install:
+
+```bash
+curl -fsSL https://cpcf.shold.io -o install-caddy-proxy-cloudflare.sh
+chmod +x install-caddy-proxy-cloudflare.sh
 ./install-caddy-proxy-cloudflare.sh
 ```
 
