@@ -9,6 +9,23 @@ An opinionated Caddy image for Docker Compose homelab edge stacks. It is built f
 
 This repository assumes working familiarity with Docker Compose, DNS, reverse proxies, and the Docker socket security tradeoff. It is written for operators who want a practical edge-stack pattern rather than a beginner Caddy tutorial.
 
+## Quickstart
+
+For Docker Compose, start from the canonical example in this repository, create `.env` using the variables shown in [Compose Pattern](#compose-pattern), then start the stack:
+
+```bash
+git clone https://github.com/sholdee/caddy-proxy-cloudflare.git
+cd caddy-proxy-cloudflare
+${EDITOR:-vi} .env
+docker compose up -d
+```
+
+For a host binary install or update on Linux:
+
+```bash
+curl -fsSL https://cpcf.shold.io | bash
+```
+
 ## What Is Included
 
 The image is built from the repository `Dockerfile` with:
