@@ -63,7 +63,7 @@ Quick install/update:
 curl -fsSL https://cpcf.shold.io | bash
 ```
 
-With flags:
+Non-interactive install with flags:
 
 ```bash
 curl -fsSL https://cpcf.shold.io | bash -s -- --yes --install-service --write-default-caddyfile --start
