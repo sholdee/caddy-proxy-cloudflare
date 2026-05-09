@@ -1,0 +1,37 @@
+# Compose-equivalent Caddyfile for host binary installs.
+#
+# Captured from the labels in ../docker-compose.yml, then sanitized with
+# placeholders and host-friendly upstream defaults. The Compose file remains the
+# canonical Docker example. Use this file when running the release binary
+# directly and you want the same Cloudflare, trusted proxy, CrowdSec, appsec,
+# compression, logging, and reverse proxy shape in plain Caddyfile syntax.
+{
+	acme_dns cloudflare {$CF_TOKEN}
+	crowdsec {
+		api_key {$CROWDSEC_API_KEY}
+		api_url {$CROWDSEC_API_URL:http://127.0.0.1:8080}
+		appsec_url {$CROWDSEC_APPSEC_URL:http://127.0.0.1:7422}
+	}
+	email {$EMAIL_ADDR:admin@example.com}
+	log {
+		output stdout
+	}
+	persist_config off
+	servers {
+		client_ip_headers Cf-Connecting-Ip
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22
+	}
+	tls_resolvers 1.1.1.1 1.0.0.1
+}
+
+whoami.{$DOMAIN} {
+	encode zstd gzip
+	log
+	route {
+		crowdsec
+		appsec
+		reverse_proxy {$WHOAMI_UPSTREAM:127.0.0.1:8080} {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+}
