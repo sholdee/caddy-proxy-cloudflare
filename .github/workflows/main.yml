@@ -375,22 +375,16 @@ jobs:
           )"
 
           artifact_notes="$(cat <<EOF
-          Image:
-          - ghcr.io/${GITHUB_REPOSITORY_OWNER}/caddy-proxy-cloudflare:${TAG}
-          - docker.io/sholdee/caddy-proxy-cloudflare:${TAG}
-
-          Image digest:
-          ${IMAGE_DIGEST}
-
-          Binaries:
-          - caddy-proxy-cloudflare-linux-amd64
-          - caddy-proxy-cloudflare-linux-arm64
-          - checksums-sha256.txt
-          - checksums-sha256.txt.sigstore.json
+          **GHCR image:** \`ghcr.io/${GITHUB_REPOSITORY_OWNER}/caddy-proxy-cloudflare:${TAG}@${IMAGE_DIGEST}\`
+          **Docker Hub image:** \`docker.io/sholdee/caddy-proxy-cloudflare:${TAG}@${IMAGE_DIGEST}\`
+          **Checksums:** \`checksums-sha256.txt\` (Sigstore bundle: \`checksums-sha256.txt.sigstore.json\`)
+          **Binaries:** \`caddy-proxy-cloudflare-linux-amd64\`, \`caddy-proxy-cloudflare-linux-arm64\`
           EOF
           )"
 
           release_notes="${generated_notes}
+
+          ---
 
           ${artifact_notes}"
 
