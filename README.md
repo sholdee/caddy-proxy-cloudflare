@@ -51,6 +51,38 @@ ghcr.io/sholdee/caddy-proxy-cloudflare:vYYYY.MDD.HMMSS
 ghcr.io/sholdee/caddy-proxy-cloudflare:latest
 ```
 
+## Host Binary Install
+
+Docker is the primary deployment target, but releases also include Linux `amd64` and `arm64` Caddy binaries for host installs.
+
+Download the installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sholdee/caddy-proxy-cloudflare/main/scripts/install-caddy-proxy-cloudflare.sh \
+  -o install-caddy-proxy-cloudflare.sh
+chmod +x install-caddy-proxy-cloudflare.sh
+```
+
+Install or update to the latest release:
+
+```bash
+./install-caddy-proxy-cloudflare.sh
+```
+
+The script detects the host architecture, verifies the binary checksum, optionally verifies the checksum Sigstore bundle with `cosign`, summarizes the planned changes, backs up the existing `caddy` binary when present, and restarts an active `caddy.service`.
+
+Useful options:
+
+```bash
+./install-caddy-proxy-cloudflare.sh --version vYYYY.MDD.HMMSS
+./install-caddy-proxy-cloudflare.sh --yes
+./install-caddy-proxy-cloudflare.sh --require-cosign
+./install-caddy-proxy-cloudflare.sh list-backups
+./install-caddy-proxy-cloudflare.sh restore
+```
+
+For systemd hosts without an existing Caddy service, `--install-service` creates a Caddyfile-based `caddy.service` following Caddy's [Linux service guidance](https://caddyserver.com/docs/running#linux-service). It does not overwrite an existing service unless `--force-service` is also set.
+
 ## Compose Pattern
 
 The canonical example is [`docker-compose.yml`](docker-compose.yml). It uses a small edge stack:
