@@ -106,6 +106,14 @@ Useful options:
 ./install-caddy-proxy-cloudflare.sh restore
 ```
 
+Nightly unattended update check after placing the script somewhere stable:
+
+```cron
+17 3 * * * /usr/local/bin/install-caddy-proxy-cloudflare.sh --yes --if-outdated --wait-idle >> /var/log/caddy-proxy-cloudflare-update.log 2>&1
+```
+
+`--if-outdated` compares the installed binary checksum with the selected release asset before downloading the binary. `--wait-idle` waits for zero established TCP connections on ports `80,443` before updating; if connections remain for the timeout window, the run exits successfully and defers to the next schedule.
+
 For systemd hosts without an existing Caddy service, `--install-service` creates a Caddyfile-based `caddy.service` following Caddy's [Linux service guidance](https://caddyserver.com/docs/running#linux-service). It does not overwrite an existing service unless `--force-service` is also set.
 
 For a plain Caddyfile starting point, [`examples/Caddyfile.compose-equivalent`](examples/Caddyfile.compose-equivalent) mirrors the main features from the canonical Compose labels in direct Caddyfile syntax.
