@@ -23,11 +23,13 @@ if [[ $# -ne 1 ]]; then
   exit 2
 fi
 
+repo_root="$(pwd)"
 dist_dir="$1"
 project="caddy-proxy-cloudflare"
 amd64_binary="${project}-linux-amd64"
 arm64_binary="${project}-linux-arm64"
 checksum_file="checksums-sha256.txt"
+compose_equivalent_caddyfile="${repo_root}/examples/Caddyfile.compose-equivalent"
 
 required_modules=(
   "docker_proxy"
@@ -110,5 +112,14 @@ EOF
 
 printf "Validating minimal Caddyfile\n"
 "./${amd64_binary}" validate --config "${tmpdir}/Caddyfile"
+
+if [[ -f "${compose_equivalent_caddyfile}" ]]; then
+  printf "Validating compose-equivalent Caddyfile\n"
+  DOMAIN=example.com \
+    EMAIL_ADDR=admin@example.com \
+    CF_TOKEN=0123456789abcdef0123456789abcdef01234567 \
+    CROWDSEC_API_KEY=example-crowdsec-key \
+    "./${amd64_binary}" validate --config "${compose_equivalent_caddyfile}"
+fi
 
 printf "Binary smoke passed\n"

@@ -108,6 +108,8 @@ Useful options:
 
 For systemd hosts without an existing Caddy service, `--install-service` creates a Caddyfile-based `caddy.service` following Caddy's [Linux service guidance](https://caddyserver.com/docs/running#linux-service). It does not overwrite an existing service unless `--force-service` is also set.
 
+For a plain Caddyfile starting point, [`examples/Caddyfile.compose-equivalent`](examples/Caddyfile.compose-equivalent) mirrors the main features from the canonical Compose labels in direct Caddyfile syntax.
+
 ## Compose Pattern
 
 The canonical example is [`docker-compose.yml`](docker-compose.yml). It uses a small edge stack:

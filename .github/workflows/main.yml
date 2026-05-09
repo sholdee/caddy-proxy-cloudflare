@@ -45,6 +45,7 @@ jobs:
               - "healthcheck.go"
               - "healthcheck_test.go"
               - ".github/workflows/main.yml"
+              - "examples/Caddyfile*"
               - "scripts/smoke-binary.sh"
             renovate:
               - ".github/workflows/main.yml"
