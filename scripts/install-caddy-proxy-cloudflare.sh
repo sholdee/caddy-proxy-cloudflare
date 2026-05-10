@@ -18,6 +18,7 @@ WORKDIR=""
 COSIGN_STATUS="not checked"
 IDLE_INTERVAL="5m"
 IDLE_PORTS="80,443"
+IDLE_QUIET="2m"
 IDLE_TIMEOUT="2h"
 
 DRY_RUN=false
@@ -34,6 +35,7 @@ WRITE_DEFAULT_CADDYFILE=false
 
 IDLE_INTERVAL_SET=false
 IDLE_PORTS_SET=false
+IDLE_QUIET_SET=false
 IDLE_TIMEOUT_SET=false
 
 SUDO=()
@@ -52,9 +54,10 @@ Options:
   --target <path>              Install or restore to a specific caddy binary path
   --dry-run                    Download and verify only; do not install or restart
   --if-outdated                Exit without changes when the installed binary matches the selected release
-  --wait-idle                  Before updating, wait until watched Caddy ports have no established connections
+  --wait-idle                  Before updating, wait until watched Caddy ports have no recent TCP activity
   --idle-timeout <duration>    Maximum time to wait for idle connections (default: 2h)
   --idle-interval <duration>   Delay between idle checks (default: 5m)
+  --idle-quiet <duration>      Treat connections as idle after no send/receive activity (default: 2m)
   --idle-ports <csv>           Local TCP ports to watch for established connections (default: 80,443)
   --require-cosign             Fail if cosign verification cannot be completed
   --install-service            Install a Caddyfile-based systemd caddy.service
@@ -564,11 +567,55 @@ idle_filter_expression() {
   printf "%s" "${expr}"
 }
 
-active_connection_count() {
+recently_active_connection_count() {
   local filter
+  local quiet_ms
 
   filter="$(idle_filter_expression)"
-  ss -Htan state established "${filter}" 2>/dev/null | wc -l | tr -d '[:space:]'
+  quiet_ms="$(( $(duration_seconds "${IDLE_QUIET}") * 1000 ))"
+  ss -Htanio state established "${filter}" 2>/dev/null | awk -v quiet_ms="${quiet_ms}" '
+    /^[^[:space:]]/ {
+      if (pending) {
+        count++
+      }
+      pending = 1
+      next
+    }
+    /^[[:space:]]/ {
+      if (!pending) {
+        next
+      }
+
+      has_activity_time = 0
+      is_active = 0
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^lastsnd:[0-9]+$/) {
+          split($i, value, ":")
+          has_activity_time = 1
+          if (value[2] < quiet_ms) {
+            is_active = 1
+          }
+        }
+        if ($i ~ /^lastrcv:[0-9]+$/) {
+          split($i, value, ":")
+          has_activity_time = 1
+          if (value[2] < quiet_ms) {
+            is_active = 1
+          }
+        }
+      }
+
+      if (!has_activity_time || is_active) {
+        count++
+      }
+      pending = 0
+    }
+    END {
+      if (pending) {
+        count++
+      }
+      print count + 0
+    }'
 }
 
 wait_for_idle_connections() {
@@ -588,22 +635,22 @@ wait_for_idle_connections() {
     exit 1
   fi
 
-  log "Waiting for idle Caddy connections on ports ${IDLE_PORTS}"
+  log "Waiting for quiet Caddy connections on ports ${IDLE_PORTS}; quiet window ${IDLE_QUIET}"
   while true; do
-    count="$(active_connection_count)"
+    count="$(recently_active_connection_count)"
     if [[ "${count}" == "0" ]]; then
-      ok "No active Caddy connections found."
+      ok "No recently active Caddy connections found."
       return 0
     fi
 
     now="$(date +%s)"
     elapsed="$((now - start))"
     if ((elapsed >= timeout)); then
-      warn "Deferred update: ${count} active Caddy connection(s) remained after ${IDLE_TIMEOUT}."
+      warn "Deferred update: ${count} recently active Caddy connection(s) remained after ${IDLE_TIMEOUT}."
       exit 0
     fi
 
-    log "Found ${count} active Caddy connection(s); retrying in ${IDLE_INTERVAL}"
+    log "Found ${count} recently active Caddy connection(s); retrying in ${IDLE_INTERVAL}"
     sleep "${interval}"
   done
 }
@@ -1077,6 +1124,12 @@ parse_args() {
         IDLE_PORTS_SET=true
         shift 2
         ;;
+      --idle-quiet)
+        IDLE_QUIET="${2:-}"
+        [[ -n "${IDLE_QUIET}" ]] || { err "--idle-quiet requires a duration"; exit 1; }
+        IDLE_QUIET_SET=true
+        shift 2
+        ;;
       --idle-timeout)
         IDLE_TIMEOUT="${2:-}"
         [[ -n "${IDLE_TIMEOUT}" ]] || { err "--idle-timeout requires a duration"; exit 1; }
@@ -1134,20 +1187,21 @@ parse_args() {
 
 validate_args() {
   if [[ "${ACTION}" != "install" ]]; then
-    if [[ "${IF_OUTDATED}" == "true" || "${WAIT_IDLE}" == "true" || "${IDLE_INTERVAL_SET}" == "true" || "${IDLE_PORTS_SET}" == "true" || "${IDLE_TIMEOUT_SET}" == "true" ]]; then
+    if [[ "${IF_OUTDATED}" == "true" || "${WAIT_IDLE}" == "true" || "${IDLE_INTERVAL_SET}" == "true" || "${IDLE_PORTS_SET}" == "true" || "${IDLE_QUIET_SET}" == "true" || "${IDLE_TIMEOUT_SET}" == "true" ]]; then
       err "--if-outdated and --wait-idle options only apply to install/update mode."
       exit 1
     fi
   fi
 
   if [[ "${WAIT_IDLE}" != "true" ]]; then
-    if [[ "${IDLE_INTERVAL_SET}" == "true" || "${IDLE_PORTS_SET}" == "true" || "${IDLE_TIMEOUT_SET}" == "true" ]]; then
-      err "--idle-timeout, --idle-interval, and --idle-ports require --wait-idle."
+    if [[ "${IDLE_INTERVAL_SET}" == "true" || "${IDLE_PORTS_SET}" == "true" || "${IDLE_QUIET_SET}" == "true" || "${IDLE_TIMEOUT_SET}" == "true" ]]; then
+      err "--idle-timeout, --idle-interval, --idle-quiet, and --idle-ports require --wait-idle."
       exit 1
     fi
   else
     duration_seconds "${IDLE_TIMEOUT}" >/dev/null
     duration_seconds "${IDLE_INTERVAL}" >/dev/null
+    duration_seconds "${IDLE_QUIET}" >/dev/null
     validate_idle_ports "${IDLE_PORTS}"
   fi
 }
