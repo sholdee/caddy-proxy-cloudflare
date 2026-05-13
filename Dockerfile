@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.3-trixie@sha256:d08bf3ed2bd263088ca8e23fefaf10f1b71769f6932f0a4017ba28d2a5baf001 AS gobuild
+FROM --platform=$BUILDPLATFORM golang:1.26.3-trixie@sha256:a085df697019cb63b40a70f6a92b948f7dc9df96dfcb2c20ba6eed25ce28f5b3 AS gobuild
 
 ARG TARGETOS
 ARG TARGETARCH
