@@ -13,7 +13,7 @@ ENV CADDY_VERSION=v2.11.4
 
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --output /go/src/github.com/caddyserver/xcaddy/cmd/caddy \
-    --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.13.0 \
+    --with github.com/lucaslorentz/caddy-docker-proxy/v2@v2.13.1 \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
     --with github.com/WeidiDeng/caddy-cloudflare-ip@v0.0.0-20231130002422-f53b62aa13cb \
     --with github.com/mholt/caddy-l4@v0.1.1 \
