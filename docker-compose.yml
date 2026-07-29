@@ -85,7 +85,7 @@ services:
 
   whoami:
     container_name: whoami
-    image: docker.io/traefik/whoami:v1.11.0
+    image: docker.io/traefik/whoami:v1.12.0
     user: 65532:65532
     privileged: false
     cap_drop:
