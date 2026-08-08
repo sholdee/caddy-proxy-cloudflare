@@ -107,7 +107,7 @@ services:
 
   docker-socket-proxy:
     container_name: docker-socket-proxy
-    image: ghcr.io/wollomatic/socket-proxy:1.12.3@sha256:9e781fbe79315355d08901832f639119aa332ac27ee6157fc7f2fab5193c8600
+    image: ghcr.io/wollomatic/socket-proxy:1.13.0@sha256:be7a61fc50baf0add95d94442c3d40cddc4594925a564f22ba870eb017ceae9f
     user: 65532:65532
     group_add:
       - "${DOCKER_GID}"
