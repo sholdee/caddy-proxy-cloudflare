@@ -4,7 +4,7 @@
 services:
   caddy:
     container_name: caddy
-    image: ghcr.io/sholdee/caddy-proxy-cloudflare:v2026.1021.81006@sha256:a4d8f0b935c69ace67c93892f72dd48e62086c0509d100f486a8c2119cea4535
+    image: ghcr.io/sholdee/caddy-proxy-cloudflare:v2026.1021.160814@sha256:7aa4a5bd0f464d786b46ccc0049490625e801171e9868b53fb9bca8c4579be78
     user: 65532:65532
     privileged: false
     cap_drop:
