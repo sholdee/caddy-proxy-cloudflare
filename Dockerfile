@@ -20,7 +20,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
     --with github.com/hslatman/caddy-crowdsec-bouncer/http@v0.15.0 \
     --with github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.15.0 \
     --with github.com/hslatman/caddy-crowdsec-bouncer/layer4@v0.15.0 \
-    --with github.com/ggicci/caddy-jwt@v1.4.0 \
+    --with github.com/ggicci/caddy-jwt@v1.5.0 \
     --with github.com/zhangjiayin/caddy-geoip2@v1.4.0
 
 WORKDIR /go/src/healthcheck
